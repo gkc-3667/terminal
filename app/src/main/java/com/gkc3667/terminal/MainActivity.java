@@ -77,10 +77,79 @@ public class MainActivity extends Activity {
     }
 
     private void buildUi() {
+        int screenWidthDp = (int)(getResources().getDisplayMetrics().widthPixels /
+                getResources().getDisplayMetrics().density);
+        final boolean desktopMode = screenWidthDp >= 700;
         LinearLayout root = new LinearLayout(this);
-        root.setOrientation(LinearLayout.VERTICAL);
+        root.setOrientation(desktopMode ? LinearLayout.HORIZONTAL : LinearLayout.VERTICAL);
         root.setBackgroundColor(BG);
-        root.setPadding(dp(14), dp(8), dp(14), dp(10));
+        root.setPadding(dp(desktopMode ? 10 : 14), dp(8), dp(desktopMode ? 10 : 14), dp(10));
+
+        LinearLayout content = new LinearLayout(this);
+        content.setOrientation(LinearLayout.VERTICAL);
+        content.setPadding(dp(desktopMode ? 10 : 0), 0, 0, 0);
+
+        if (desktopMode) {
+            LinearLayout sidebar = new LinearLayout(this);
+            sidebar.setOrientation(LinearLayout.VERTICAL);
+            sidebar.setPadding(dp(12), dp(16), dp(12), dp(12));
+            sidebar.setBackground(round(PANEL, 16));
+            TextView sideBrand = new TextView(this);
+            sideBrand.setText("TP");
+            sideBrand.setTextColor(GREEN);
+            sideBrand.setTextSize(25);
+            sideBrand.setTypeface(Typeface.MONOSPACE, Typeface.BOLD);
+            sideBrand.setGravity(Gravity.CENTER);
+            sidebar.addView(sideBrand, new LinearLayout.LayoutParams(-1, dp(52)));
+            TextView sideTitle = new TextView(this);
+            sideTitle.setText("TERMINAL\\nPRO");
+            sideTitle.setTextColor(FG);
+            sideTitle.setTextSize(13);
+            sideTitle.setTypeface(Typeface.MONOSPACE, Typeface.BOLD);
+            sideTitle.setGravity(Gravity.CENTER);
+            sidebar.addView(sideTitle, new LinearLayout.LayoutParams(-1, dp(48)));
+            View divider = new View(this);
+            divider.setBackgroundColor(Color.rgb(43, 56, 70));
+            LinearLayout.LayoutParams dividerLp = new LinearLayout.LayoutParams(-1, dp(1));
+            dividerLp.topMargin = dp(12); dividerLp.bottomMargin = dp(12);
+            sidebar.addView(divider, dividerLp);
+
+            TextView navCaption = new TextView(this);
+            navCaption.setText("WORKSPACE");
+            navCaption.setTextColor(MUTED);
+            navCaption.setTextSize(9);
+            navCaption.setTypeface(Typeface.MONOSPACE, Typeface.BOLD);
+            sidebar.addView(navCaption);
+            Button navLocal = smallButton("▣  Terminal");
+            navLocal.setGravity(Gravity.CENTER_VERTICAL);
+            navLocal.setTextColor(GREEN);
+            navLocal.setOnClickListener(v -> {
+                if (sshConnected) new AlertDialog.Builder(this).setTitle("Đang ở phiên VPS")
+                    .setMessage("Ngắt SSH để quay lại terminal thiết bị?")
+                    .setNegativeButton("Ở lại", null)
+                    .setPositiveButton("Ngắt SSH", (d,w) -> disconnectSsh()).show();
+                else statusLabel.setText("  LOCAL SHELL  •  /system/bin/sh");
+            });
+            LinearLayout.LayoutParams navLp = new LinearLayout.LayoutParams(-1, dp(44));
+            navLp.topMargin = dp(8); sidebar.addView(navLocal, navLp);
+            Button navSsh = smallButton("⇄  SSH / VPS");
+            navSsh.setGravity(Gravity.CENTER_VERTICAL);
+            navSsh.setTextColor(BLUE);
+            navSsh.setOnClickListener(v -> showSshDialog());
+            LinearLayout.LayoutParams navSshLp = new LinearLayout.LayoutParams(-1, dp(44));
+            navSshLp.topMargin = dp(5); sidebar.addView(navSsh, navSshLp);
+            View spacer = new View(this);
+            sidebar.addView(spacer, new LinearLayout.LayoutParams(1, 0, 1));
+            TextView sideFooter = new TextView(this);
+            sideFooter.setText("ANDROID SHELL\\nSSH CLIENT");
+            sideFooter.setTextColor(MUTED);
+            sideFooter.setTextSize(9);
+            sideFooter.setGravity(Gravity.CENTER);
+            sidebar.addView(sideFooter);
+            LinearLayout.LayoutParams sideLp = new LinearLayout.LayoutParams(dp(176), -1);
+            sideLp.rightMargin = dp(8);
+            root.addView(sidebar, sideLp);
+        }
 
         LinearLayout header = new LinearLayout(this);
         header.setGravity(Gravity.CENTER_VERTICAL);
@@ -119,7 +188,7 @@ public class MainActivity extends Activity {
         LinearLayout.LayoutParams clearLp = new LinearLayout.LayoutParams(-2, dp(36));
         clearLp.leftMargin = dp(6);
         header.addView(clear, clearLp);
-        root.addView(header);
+        content.addView(header);
 
         LinearLayout tabs = new LinearLayout(this);
         tabs.setOrientation(LinearLayout.HORIZONTAL);
@@ -141,7 +210,7 @@ public class MainActivity extends Activity {
         LinearLayout.LayoutParams sshTabLp = new LinearLayout.LayoutParams(0, dp(38), 1);
         sshTabLp.leftMargin = dp(7);
         tabs.addView(sshTab, sshTabLp);
-        root.addView(tabs);
+        content.addView(tabs);
 
         LinearLayout info = new LinearLayout(this);
         info.setGravity(Gravity.CENTER_VERTICAL);
@@ -157,21 +226,21 @@ public class MainActivity extends Activity {
         statusLabel.setTextSize(10);
         statusLabel.setTypeface(Typeface.MONOSPACE);
         info.addView(statusLabel);
-        root.addView(info);
+        content.addView(info);
 
         scroll = new ScrollView(this);
         scroll.setFillViewport(true);
         scroll.setBackground(round(Color.rgb(6, 9, 13), 12));
         output = new TextView(this);
         output.setTextColor(FG);
-        output.setTextSize(13);
+        output.setTextSize(desktopMode ? 15 : 13);
         output.setTypeface(Typeface.MONOSPACE);
         output.setTextIsSelectable(true);
         output.setPadding(dp(12), dp(12), dp(12), dp(16));
         output.setLineSpacing(dp(2), 1.0f);
         scroll.addView(output, new ScrollView.LayoutParams(-1, -2));
         LinearLayout.LayoutParams terminalLp = new LinearLayout.LayoutParams(-1, 0, 1);
-        root.addView(scroll, terminalLp);
+        content.addView(scroll, terminalLp);
 
         pathLabel = new TextView(this);
         pathLabel.setTextColor(BLUE);
@@ -179,7 +248,7 @@ public class MainActivity extends Activity {
         pathLabel.setTypeface(Typeface.MONOSPACE, Typeface.BOLD);
         pathLabel.setSingleLine(true);
         pathLabel.setPadding(dp(5), dp(9), dp(5), dp(5));
-        root.addView(pathLabel);
+        content.addView(pathLabel);
 
         HorizontalScrollView quickScroll = new HorizontalScrollView(this);
         quickScroll.setHorizontalScrollBarEnabled(false);
@@ -191,7 +260,7 @@ public class MainActivity extends Activity {
         addQuick(quick, "uname -a");
         addQuick(quick, "python --version");
         quickScroll.addView(quick);
-        root.addView(quickScroll);
+        content.addView(quickScroll);
 
         LinearLayout bar = new LinearLayout(this);
         bar.setGravity(Gravity.CENTER_VERTICAL);
@@ -235,7 +304,8 @@ public class MainActivity extends Activity {
         run.setBackground(round(GREEN, 9));
         run.setOnClickListener(v -> runCommand());
         bar.addView(run, new LinearLayout.LayoutParams(dp(88), dp(42)));
-        root.addView(bar);
+        content.addView(bar);
+        root.addView(content, new LinearLayout.LayoutParams(0, -1, 1));
         setContentView(root);
     }
 
