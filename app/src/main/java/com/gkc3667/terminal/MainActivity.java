@@ -576,7 +576,7 @@ public class MainActivity extends Activity {
                 "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/" + version + " Safari/537.36");
             android.webkit.CookieManager cookies = android.webkit.CookieManager.getInstance();
             cookies.setAcceptCookie(true);
-            if (Build.VERSION.SDK_INT >= 21) cookies.setAcceptThirdPartyCookies(web, true);
+            if (Build.VERSION.SDK_INT >= 21) cookies.setAcceptThirdPartyCookies(existingWeb, true);
             existingWeb.setWebViewClient(new WebViewClient());
             existingWeb.setWebChromeClient(new WebChromeClient());
         }
