@@ -459,7 +459,7 @@ public class MainActivity extends Activity {
         TextView name = new TextView(this); name.setText(title); name.setTextColor(Color.WHITE); name.setTextSize(15); name.setTypeface(Typeface.DEFAULT, Typeface.BOLD); name.setPadding(0, dp(5), 0, dp(3)); card.addView(name);
         TextView sub = new TextView(this); sub.setText(desc); sub.setTextColor(Color.rgb(220, 220, 240)); sub.setTextSize(11); card.addView(sub);
         card.setOnClickListener(v -> action.run());
-        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, -2, 1); lp.setMargins(dp(4), dp(4), dp(4), dp(4)); parent.addView(card, lp);
+        LinearLayout.LayoutParams lp = parent.getOrientation() == LinearLayout.HORIZONTAL ? new LinearLayout.LayoutParams(0, -2, 1) : new LinearLayout.LayoutParams(-1, -2); lp.setMargins(dp(4), dp(4), dp(4), dp(4)); parent.addView(card, lp);
     }
 
     private void addInfoLine(LinearLayout parent, String key, String value) {
