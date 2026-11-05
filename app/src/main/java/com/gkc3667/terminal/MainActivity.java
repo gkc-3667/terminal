@@ -21,6 +21,8 @@ import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
 import android.text.InputType;
+import com.chaquo.python.Python;
+import com.chaquo.python.android.AndroidPlatform;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.InputStreamReader;
@@ -247,6 +249,7 @@ public class MainActivity extends Activity {
         if (cmd.isEmpty()) return;
         input.setText("");
         hideKeyboard();
+        if (cmd.matches("^(python|python3|pip|pip3)(\\s|$).*$")) { runPythonCommand(cmd); return; }
         if ("clear".equals(cmd)) { output.setText(""); showPrompt(); return; }
         if ("help".equals(cmd)) { showHelp(); return; }
         if ("history".equals(cmd)) {
@@ -301,6 +304,40 @@ public class MainActivity extends Activity {
         }, "terminal-command").start();
     }
 
+    private void runPythonCommand(String cmd) {
+        history.add(cmd);
+        historyIndex = history.size();
+        writeLine("$ " + cmd, BLUE, true);
+        busy = true;
+        statusLabel.setText("  PYTHON RUNNING...");
+        final String path = currentPath;
+        new Thread(() -> {
+            try {
+                if (!Python.isStarted()) Python.start(new AndroidPlatform(getApplicationContext()));
+                String result = Python.getInstance()
+                        .getModule("terminal_runner")
+                        .callAttr("run_command", cmd, path)
+                        .toString();
+                runOnUiThread(() -> {
+                    if (!result.isEmpty()) {
+                        output.append(result);
+                        if (!result.endsWith("\\n")) output.append("\\n");
+                    }
+                    statusLabel.setText("  PYTHON READY");
+                    busy = false;
+                    showPrompt();
+                });
+            } catch (Exception e) {
+                runOnUiThread(() -> {
+                    writeLine("Python error: " + e.getMessage(), Color.RED, false);
+                    statusLabel.setText("  PYTHON ERROR");
+                    busy = false;
+                    showPrompt();
+                });
+            }
+        }, "terminal-python").start();
+    }
+
     private void showHelp() {
         writeLine("$ help", BLUE, true);
         writeLine("LỆNH CƠ BẢN", GREEN, true);
@@ -315,7 +352,7 @@ public class MainActivity extends Activity {
         writeLine("exit      khởi động phiên shell mới", FG, false);
         writeLine("LƯU Ý", GREEN, true);
         writeLine("Đây là shell Android thật (/system/bin/sh), không phải Debian.", MUTED, false);
-        writeLine("apt, sudo và các gói Linux không được tích hợp trong bản này.", MUTED, false);
+        writeLine("Python 3.11 được tích hợp: python --version, python file.py, python -c \"print(123)\"", MUTED, false);\n        writeLine("discord.py được đóng gói sẵn: pip list / pip show discord.py", MUTED, false);\n        writeLine("pip cài thêm gói tùy ý chưa hỗ trợ; apt và sudo không có.", MUTED, false);
         showPrompt();
     }
 
