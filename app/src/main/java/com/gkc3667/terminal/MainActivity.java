@@ -2,6 +2,7 @@ package com.gkc3667.terminal;
 
 import android.app.Activity;
 import android.os.Bundle;
+import android.os.Build;
 import android.graphics.Color;
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
@@ -54,7 +55,9 @@ public class MainActivity extends Activity {
         buildUi();
         startShell();
         writeLine("TERMINAL PRO  •  ANDROID SHELL", GREEN, true);
-        writeLine("Phiên làm việc thật đang chạy trong môi trường Android.", MUTED, false);
+        writeLine("Phiên shell thật đang chạy trong môi trường Android.", MUTED, false);
+        writeLine("Android ABI: " + android.text.TextUtils.join(", ", Build.SUPPORTED_ABIS), BLUE, false);
+        writeLine("Android API: " + Build.VERSION.SDK_INT, MUTED, false);
         writeLine("Gõ help để xem lệnh. Thư mục mặc định: " + currentPath, MUTED, false);
         showPrompt();
     }
