@@ -26,6 +26,11 @@ import android.widget.HorizontalScrollView;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
+import android.webkit.WebView;
+import android.webkit.WebSettings;
+import android.webkit.WebViewClient;
+import android.webkit.WebChromeClient;
+import android.app.Dialog;
 import android.text.InputType;
 import com.chaquo.python.Python;
 import com.chaquo.python.android.AndroidPlatform;
@@ -210,6 +215,12 @@ public class MainActivity extends Activity {
         LinearLayout.LayoutParams sshTabLp = new LinearLayout.LayoutParams(0, dp(38), 1);
         sshTabLp.leftMargin = dp(7);
         tabs.addView(sshTab, sshTabLp);
+        Button discordTab = smallButton("◎  DISCORD");
+        discordTab.setTextColor(Color.rgb(190, 165, 255));
+        LinearLayout.LayoutParams discordTabLp = new LinearLayout.LayoutParams(0, dp(38), 1);
+        discordTabLp.leftMargin = dp(7);
+        tabs.addView(discordTab, discordTabLp);
+        discordTab.setOnClickListener(v -> openDiscordDesktop());
         content.addView(tabs);
 
         LinearLayout info = new LinearLayout(this);
@@ -309,6 +320,59 @@ public class MainActivity extends Activity {
         setContentView(root);
     }
 
+
+
+    private void openDiscordDesktop() {
+        Dialog dialog = new Dialog(this);
+        LinearLayout page = new LinearLayout(this);
+        page.setOrientation(LinearLayout.VERTICAL);
+        page.setBackgroundColor(BG);
+
+        LinearLayout toolbar = new LinearLayout(this);
+        toolbar.setGravity(Gravity.CENTER_VERTICAL);
+        toolbar.setPadding(dp(10), dp(6), dp(10), dp(6));
+        toolbar.setBackgroundColor(PANEL);
+        TextView label = new TextView(this);
+        label.setText("DISCORD  •  DESKTOP MODE");
+        label.setTextColor(FG);
+        label.setTypeface(Typeface.MONOSPACE, Typeface.BOLD);
+        label.setTextSize(12);
+        toolbar.addView(label, new LinearLayout.LayoutParams(0, dp(42), 1));
+        Button reload = smallButton("RELOAD");
+        toolbar.addView(reload);
+        Button close = smallButton("CLOSE");
+        LinearLayout.LayoutParams closeLp = new LinearLayout.LayoutParams(-2, dp(38));
+        closeLp.leftMargin = dp(6);
+        toolbar.addView(close, closeLp);
+        page.addView(toolbar);
+
+        WebView discord = new WebView(this);
+        WebSettings settings = discord.getSettings();
+        settings.setJavaScriptEnabled(true);
+        settings.setDomStorageEnabled(true);
+        settings.setDatabaseEnabled(true);
+        settings.setLoadWithOverviewMode(false);
+        settings.setUseWideViewPort(true);
+        settings.setSupportZoom(true);
+        settings.setBuiltInZoomControls(true);
+        settings.setDisplayZoomControls(false);
+        String ua = settings.getUserAgentString()
+                .replace("Android", "X11; Linux x86_64")
+                .replace("Mobile ", "");
+        settings.setUserAgentString(ua);
+        discord.setWebViewClient(new WebViewClient());
+        discord.setWebChromeClient(new WebChromeClient());
+        page.addView(discord, new LinearLayout.LayoutParams(-1, 0, 1));
+        reload.setOnClickListener(v -> discord.reload());
+        close.setOnClickListener(v -> dialog.dismiss());
+        dialog.setContentView(page);
+        dialog.setOnDismissListener(d -> discord.destroy());
+        dialog.show();
+        if (dialog.getWindow() != null) {
+            dialog.getWindow().setLayout(-1, -1);
+        }
+        discord.loadUrl("https://discord.com/app");
+    }
 
     private void addQuick(LinearLayout row, String command) {
         Button b = smallButton(command);
