@@ -40,6 +40,9 @@ import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.util.ArrayList;
 import java.util.Properties;
+import android.content.SharedPreferences;
+import org.json.JSONArray;
+import org.json.JSONObject;
 
 public class MainActivity extends Activity {
     private static final int BG = Color.rgb(10, 14, 19);
@@ -215,12 +218,12 @@ public class MainActivity extends Activity {
         LinearLayout.LayoutParams sshTabLp = new LinearLayout.LayoutParams(0, dp(38), 1);
         sshTabLp.leftMargin = dp(7);
         tabs.addView(sshTab, sshTabLp);
-        Button discordTab = smallButton("◎  DISCORD");
+        Button discordTab = smallButton("▦  PC APP");
         discordTab.setTextColor(Color.rgb(190, 165, 255));
         LinearLayout.LayoutParams discordTabLp = new LinearLayout.LayoutParams(0, dp(38), 1);
         discordTabLp.leftMargin = dp(7);
         tabs.addView(discordTab, discordTabLp);
-        discordTab.setOnClickListener(v -> openDiscordDesktop());
+        discordTab.setOnClickListener(v -> openPcApps());
         content.addView(tabs);
 
         LinearLayout info = new LinearLayout(this);
@@ -322,32 +325,218 @@ public class MainActivity extends Activity {
 
 
 
-    private void openDiscordDesktop() {
+    private SharedPreferences pcAppPrefs() {
+        return getSharedPreferences("pc_app_library", MODE_PRIVATE);
+    }
+
+    private JSONArray getPcApps() {
+        try { return new JSONArray(pcAppPrefs().getString("apps", "[]")); }
+        catch (Exception e) { return new JSONArray(); }
+    }
+
+    private void savePcApps(JSONArray apps) {
+        pcAppPrefs().edit().putString("apps", apps.toString()).apply();
+    }
+
+    private void addPcApp(String name, String url) {
+        try {
+            JSONArray apps = getPcApps();
+            JSONObject item = new JSONObject();
+            item.put("name", name.trim());
+            item.put("url", url.trim());
+            item.put("id", System.currentTimeMillis() + "_" + apps.length());
+            apps.put(item);
+            savePcApps(apps);
+            showPcAppLibrary();
+        } catch (Exception e) {
+            statusLabel.setText("  KHÔNG THỂ THÊM ỨNG DỤNG");
+        }
+    }
+
+    private void showAddPcAppDialog() {
+        final String[][] catalog = {
+            {"Discord", "https://discord.com/app"},
+            {"YouTube", "https://www.youtube.com"},
+            {"Roblox", "https://www.roblox.com"},
+            {"GeForce NOW", "https://play.geforcenow.com"},
+            {"Telegram Web", "https://web.telegram.org"},
+            {"Spotify", "https://open.spotify.com"},
+            {"Minecraft", "https://www.minecraft.net"}
+        };
+        LinearLayout list = new LinearLayout(this);
+        list.setOrientation(LinearLayout.VERTICAL);
+        list.setPadding(dp(14), dp(8), dp(14), dp(8));
+        ScrollView sc = new ScrollView(this);
+        sc.addView(list);
+        for (String[] app : catalog) {
+            LinearLayout row = new LinearLayout(this);
+            row.setGravity(Gravity.CENTER_VERTICAL);
+            row.setPadding(dp(8), dp(5), dp(4), dp(5));
+            TextView title = new TextView(this);
+            title.setText(app[0] + "\n" + app[1]);
+            title.setTextColor(FG);
+            title.setTextSize(12);
+            row.addView(title, new LinearLayout.LayoutParams(0, -2, 1));
+            Button add = smallButton("THÊM");
+            add.setOnClickListener(v -> addPcApp(app[0], app[1]));
+            row.addView(add);
+            list.addView(row);
+            View line = new View(this);
+            line.setBackgroundColor(Color.rgb(43, 56, 70));
+            list.addView(line, new LinearLayout.LayoutParams(-1, dp(1)));
+        }
+        Button custom = smallButton("+  THÊM ỨNG DỤNG BẰNG LINK");
+        custom.setOnClickListener(v -> showCustomPcAppDialog());
+        LinearLayout.LayoutParams customLp = new LinearLayout.LayoutParams(-1, dp(44));
+        customLp.topMargin = dp(10);
+        list.addView(custom, customLp);
+        new AlertDialog.Builder(this).setTitle("Chọn ứng dụng hoặc game")
+            .setView(sc).setNegativeButton("ĐÓNG", null).show();
+    }
+
+    private void showCustomPcAppDialog() {
+        LinearLayout form = new LinearLayout(this);
+        form.setOrientation(LinearLayout.VERTICAL);
+        form.setPadding(dp(18), dp(8), dp(18), dp(8));
+        EditText name = field("Tên ứng dụng", false);
+        EditText url = field("Địa chỉ web (https://...)", false);
+        addFormField(form, "Tên hiển thị", name);
+        addFormField(form, "Đường dẫn", url);
+        new AlertDialog.Builder(this).setTitle("Thêm ứng dụng")
+            .setView(form).setNegativeButton("HỦY", null)
+            .setPositiveButton("THÊM", (d, w) -> {
+                String n = name.getText().toString().trim();
+                String u = url.getText().toString().trim();
+                if (n.isEmpty() || !(u.startsWith("https://") || u.startsWith("http://"))) {
+                    new AlertDialog.Builder(this).setMessage("Hãy nhập tên và link http/https hợp lệ.")
+                        .setPositiveButton("OK", null).show();
+                } else addPcApp(n, u);
+            }).show();
+    }
+
+    private void showPcAppLibrary() {
+        Dialog dialog = new Dialog(this);
+        LinearLayout page = new LinearLayout(this);
+        page.setOrientation(LinearLayout.VERTICAL);
+        page.setPadding(dp(14), dp(12), dp(14), dp(12));
+        page.setBackgroundColor(BG);
+
+        LinearLayout header = new LinearLayout(this);
+        header.setGravity(Gravity.CENTER_VERTICAL);
+        TextView heading = new TextView(this);
+        heading.setText("PC APP  •  THƯ VIỆN");
+        heading.setTextColor(GREEN);
+        heading.setTextSize(17);
+        heading.setTypeface(Typeface.MONOSPACE, Typeface.BOLD);
+        header.addView(heading, new LinearLayout.LayoutParams(0, dp(44), 1));
+        Button add = smallButton("+ THÊM ỨNG DỤNG");
+        add.setOnClickListener(v -> { dialog.dismiss(); showAddPcAppDialog(); });
+        header.addView(add);
+        page.addView(header);
+
+        TextView hint = new TextView(this);
+        hint.setText("Ứng dụng đã thêm được lưu trên thiết bị. Nhấn vào tên để mở; nhấn ⋮ để xóa.");
+        hint.setTextColor(MUTED);
+        hint.setTextSize(11);
+        hint.setPadding(0, dp(4), 0, dp(12));
+        page.addView(hint);
+
+        ScrollView scrollList = new ScrollView(this);
+        LinearLayout list = new LinearLayout(this);
+        list.setOrientation(LinearLayout.VERTICAL);
+        JSONArray apps = getPcApps();
+        if (apps.length() == 0) {
+            TextView empty = new TextView(this);
+            empty.setText("Chưa có ứng dụng nào.\nNhấn + THÊM ỨNG DỤNG để bắt đầu.");
+            empty.setTextColor(MUTED);
+            empty.setGravity(Gravity.CENTER);
+            empty.setPadding(dp(12), dp(35), dp(12), dp(35));
+            list.addView(empty);
+        }
+        for (int i = 0; i < apps.length(); i++) {
+            JSONObject item = apps.optJSONObject(i);
+            if (item == null) continue;
+            final String appName = item.optString("name", "Ứng dụng");
+            final String appUrl = item.optString("url", "");
+            final String appId = item.optString("id", "");
+            LinearLayout row = new LinearLayout(this);
+            row.setGravity(Gravity.CENTER_VERTICAL);
+            row.setPadding(dp(10), dp(7), dp(5), dp(7));
+            row.setBackground(round(PANEL, 10));
+            LinearLayout info = new LinearLayout(this);
+            info.setOrientation(LinearLayout.VERTICAL);
+            TextView n = new TextView(this);
+            n.setText(appName);
+            n.setTextColor(FG);
+            n.setTextSize(14);
+            n.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
+            TextView u = new TextView(this);
+            u.setText(appUrl);
+            u.setTextColor(MUTED);
+            u.setTextSize(10);
+            info.addView(n);
+            info.addView(u);
+            info.setOnClickListener(v -> { dialog.dismiss(); openPcApp(appName, appUrl); });
+            row.addView(info, new LinearLayout.LayoutParams(0, -2, 1));
+            Button menu = smallButton("⋮");
+            menu.setTextSize(18);
+            menu.setOnClickListener(v -> new AlertDialog.Builder(this)
+                .setTitle(appName).setItems(new String[]{"Xóa ứng dụng"}, (d, which) -> {
+                    JSONArray current = getPcApps();
+                    JSONArray kept = new JSONArray();
+                    for (int j = 0; j < current.length(); j++) {
+                        JSONObject candidate = current.optJSONObject(j);
+                        if (candidate != null && !candidate.optString("id").equals(appId)) kept.put(candidate);
+                    }
+                    savePcApps(kept);
+                    showPcAppLibrary();
+                }).show());
+            row.addView(menu);
+            LinearLayout.LayoutParams rowLp = new LinearLayout.LayoutParams(-1, -2);
+            rowLp.bottomMargin = dp(7);
+            list.addView(row, rowLp);
+        }
+        scrollList.addView(list);
+        page.addView(scrollList, new LinearLayout.LayoutParams(-1, 0, 1));
+        Button done = smallButton("ĐÓNG");
+        done.setOnClickListener(v -> dialog.dismiss());
+        LinearLayout.LayoutParams doneLp = new LinearLayout.LayoutParams(-1, dp(42));
+        doneLp.topMargin = dp(8);
+        page.addView(done, doneLp);
+        dialog.setContentView(page);
+        dialog.show();
+        if (dialog.getWindow() != null) dialog.getWindow().setLayout(-1, -1);
+    }
+
+    private void openPcApp(String appName, String appUrl) {
         Dialog dialog = new Dialog(this);
         LinearLayout page = new LinearLayout(this);
         page.setOrientation(LinearLayout.VERTICAL);
         page.setBackgroundColor(BG);
-
         LinearLayout toolbar = new LinearLayout(this);
         toolbar.setGravity(Gravity.CENTER_VERTICAL);
-        toolbar.setPadding(dp(10), dp(6), dp(10), dp(6));
+        toolbar.setPadding(dp(8), dp(5), dp(8), dp(5));
         toolbar.setBackgroundColor(PANEL);
         TextView label = new TextView(this);
-        label.setText("DISCORD  •  DESKTOP MODE");
+        label.setText(appName + "  •  PC MODE");
         label.setTextColor(FG);
         label.setTypeface(Typeface.MONOSPACE, Typeface.BOLD);
         label.setTextSize(12);
         toolbar.addView(label, new LinearLayout.LayoutParams(0, dp(42), 1));
-        Button reload = smallButton("RELOAD");
-        toolbar.addView(reload);
-        Button close = smallButton("CLOSE");
+        Button back = smallButton("‹");
+        toolbar.addView(back);
+        Button reload = smallButton("↻");
+        LinearLayout.LayoutParams reloadLp = new LinearLayout.LayoutParams(-2, dp(38));
+        reloadLp.leftMargin = dp(5);
+        toolbar.addView(reload, reloadLp);
+        Button close = smallButton("✕");
         LinearLayout.LayoutParams closeLp = new LinearLayout.LayoutParams(-2, dp(38));
-        closeLp.leftMargin = dp(6);
+        closeLp.leftMargin = dp(5);
         toolbar.addView(close, closeLp);
         page.addView(toolbar);
 
-        WebView discord = new WebView(this);
-        WebSettings settings = discord.getSettings();
+        WebView web = new WebView(this);
+        WebSettings settings = web.getSettings();
         settings.setJavaScriptEnabled(true);
         settings.setDomStorageEnabled(true);
         settings.setDatabaseEnabled(true);
@@ -356,22 +545,32 @@ public class MainActivity extends Activity {
         settings.setSupportZoom(true);
         settings.setBuiltInZoomControls(true);
         settings.setDisplayZoomControls(false);
+        settings.setMediaPlaybackRequiresUserGesture(false);
         String ua = settings.getUserAgentString()
-                .replace("Android", "X11; Linux x86_64")
-                .replace("Mobile ", "");
+            .replace("Android", "X11; Linux x86_64").replace("Mobile ", "");
         settings.setUserAgentString(ua);
-        discord.setWebViewClient(new WebViewClient());
-        discord.setWebChromeClient(new WebChromeClient());
-        page.addView(discord, new LinearLayout.LayoutParams(-1, 0, 1));
-        reload.setOnClickListener(v -> discord.reload());
+        android.webkit.CookieManager cookies = android.webkit.CookieManager.getInstance();
+        cookies.setAcceptCookie(true);
+        if (Build.VERSION.SDK_INT >= 21) cookies.setAcceptThirdPartyCookies(web, true);
+        web.setWebViewClient(new WebViewClient());
+        web.setWebChromeClient(new WebChromeClient());
+        page.addView(web, new LinearLayout.LayoutParams(-1, 0, 1));
+        back.setOnClickListener(v -> { if (web.canGoBack()) web.goBack(); });
+        reload.setOnClickListener(v -> web.reload());
         close.setOnClickListener(v -> dialog.dismiss());
         dialog.setContentView(page);
-        dialog.setOnDismissListener(d -> discord.destroy());
+        dialog.setOnDismissListener(d -> {
+            cookies.flush();
+            web.onPause();
+            web.destroy();
+        });
         dialog.show();
-        if (dialog.getWindow() != null) {
-            dialog.getWindow().setLayout(-1, -1);
-        }
-        discord.loadUrl("https://discord.com/app");
+        if (dialog.getWindow() != null) dialog.getWindow().setLayout(-1, -1);
+        web.loadUrl(appUrl);
+    }
+
+    private void openPcApps() {
+        showPcAppLibrary();
     }
 
     private void addQuick(LinearLayout row, String command) {
