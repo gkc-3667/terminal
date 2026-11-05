@@ -35,10 +35,6 @@ import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.util.ArrayList;
 import java.util.Properties;
-import java.net.HttpURLConnection;
-import java.net.URL;
-import org.json.JSONArray;
-import org.json.JSONObject;
 
 public class MainActivity extends Activity {
     private static final int BG = Color.rgb(10, 14, 19);
@@ -113,16 +109,39 @@ public class MainActivity extends Activity {
         LinearLayout.LayoutParams connectLp = new LinearLayout.LayoutParams(-2, dp(36));
         connectLp.leftMargin = dp(6);
         header.addView(connect, connectLp);
-        Button ai = smallButton("AI");
-        ai.setOnClickListener(v -> showAiDialog());
-        LinearLayout.LayoutParams aiLp = new LinearLayout.LayoutParams(-2, dp(36));
-        aiLp.leftMargin = dp(6); header.addView(ai, aiLp);
+        Button paste = smallButton("PASTE");
+        paste.setOnClickListener(v -> pasteInput());
+        LinearLayout.LayoutParams pasteLp = new LinearLayout.LayoutParams(-2, dp(36));
+        pasteLp.leftMargin = dp(6);
+        header.addView(paste, pasteLp);
         Button clear = smallButton("CLEAR");
         clear.setOnClickListener(v -> { output.setText(""); showPrompt(); });
         LinearLayout.LayoutParams clearLp = new LinearLayout.LayoutParams(-2, dp(36));
         clearLp.leftMargin = dp(6);
         header.addView(clear, clearLp);
         root.addView(header);
+
+        LinearLayout tabs = new LinearLayout(this);
+        tabs.setOrientation(LinearLayout.HORIZONTAL);
+        tabs.setPadding(0, dp(9), 0, dp(3));
+        Button localTab = smallButton("●  LOCAL TERMINAL");
+        localTab.setTextColor(GREEN);
+        localTab.setOnClickListener(v -> {
+            if (sshConnected) {
+                new AlertDialog.Builder(this).setTitle("Đang kết nối VPS")
+                    .setMessage("Bạn đang ở phiên SSH. Ngắt kết nối để quay về terminal trên thiết bị?")
+                    .setNegativeButton("Ở lại", null)
+                    .setPositiveButton("Ngắt VPS", (d,w) -> disconnectSsh()).show();
+            } else statusLabel.setText("  LOCAL SHELL  •  /system/bin/sh");
+        });
+        tabs.addView(localTab, new LinearLayout.LayoutParams(0, dp(38), 1));
+        Button sshTab = smallButton("⇄  SSH / VPS");
+        sshTab.setTextColor(BLUE);
+        sshTab.setOnClickListener(v -> showSshDialog());
+        LinearLayout.LayoutParams sshTabLp = new LinearLayout.LayoutParams(0, dp(38), 1);
+        sshTabLp.leftMargin = dp(7);
+        tabs.addView(sshTab, sshTabLp);
+        root.addView(tabs);
 
         LinearLayout info = new LinearLayout(this);
         info.setGravity(Gravity.CENTER_VERTICAL);
@@ -221,78 +240,6 @@ public class MainActivity extends Activity {
     }
 
 
-    private void showAiDialog() {
-        LinearLayout panel = new LinearLayout(this);
-        panel.setOrientation(LinearLayout.VERTICAL);
-        panel.setPadding(dp(14), dp(8), dp(14), dp(8));
-        EditText key = field("API key AI (OpenAI-compatible)", true);
-        EditText request = field("Bạn muốn AI làm gì? Ví dụ: tạo bot Discord Python...", false);
-        request.setMinLines(3); request.setGravity(Gravity.TOP);
-        EditText model = field("Model", false); model.setSingleLine(true); model.setText("gpt-4o-mini");
-        EditText endpoint = field("API endpoint", false); endpoint.setSingleLine(true);
-        endpoint.setText("https://api.openai.com/v1/chat/completions");
-        panel.addView(key); panel.addView(model); panel.addView(endpoint); panel.addView(request);
-        new AlertDialog.Builder(this).setTitle("AI Assistant")
-            .setView(panel).setNegativeButton("Đóng", null)
-            .setPositiveButton("Gửi AI", (d,w) -> callAi(request.getText().toString(),
-                key.getText().toString(), model.getText().toString(), endpoint.getText().toString()))
-            .show();
-    }
-
-    private void callAi(String prompt, String apiKey, String model, String endpoint) {
-        if (prompt.trim().isEmpty() || apiKey.trim().isEmpty()) {
-            writeLine("AI: cần nhập yêu cầu và API key hợp lệ.", Color.RED, false); return;
-        }
-        writeLine("Đang gửi yêu cầu tới AI...", BLUE, true);
-        new Thread(() -> {
-            HttpURLConnection c = null;
-            try {
-                JSONObject body = new JSONObject();
-                body.put("model", model.trim());
-                JSONArray messages = new JSONArray();
-                messages.put(new JSONObject().put("role", "system").put("content",
-                    "Bạn là trợ lý lập trình terminal/VPS. Trả lời tiếng Việt, giải thích lệnh, đưa mã trong code block. Không được nói đã chạy lệnh. Cảnh báo lệnh phá hủy dữ liệu. Người dùng phải tự kiểm tra và xác nhận trước khi chạy."));
-                messages.put(new JSONObject().put("role", "user").put("content", prompt));
-                body.put("messages", messages);
-                c = (HttpURLConnection) new URL(endpoint.trim()).openConnection();
-                c.setRequestMethod("POST"); c.setConnectTimeout(20000); c.setReadTimeout(60000);
-                c.setDoOutput(true); c.setRequestProperty("Content-Type", "application/json");
-                c.setRequestProperty("Authorization", "Bearer " + apiKey.trim());
-                c.getOutputStream().write(body.toString().getBytes("UTF-8"));
-                int status = c.getResponseCode();
-                java.io.InputStream stream = status >= 200 && status < 300 ? c.getInputStream() : c.getErrorStream();
-                BufferedReader reader = new BufferedReader(new InputStreamReader(stream, "UTF-8"));
-                StringBuilder raw = new StringBuilder(); String line;
-                while ((line = reader.readLine()) != null) raw.append(line);
-                if (status < 200 || status >= 300) throw new Exception("HTTP " + status + ": " + raw);
-                JSONObject response = new JSONObject(raw.toString());
-                String answer = response.getJSONArray("choices").getJSONObject(0)
-                    .getJSONObject("message").getString("content");
-                String code = extractAiCode(answer);
-                runOnUiThread(() -> {
-                    writeLine("AI đã trả lời.", GREEN, false);
-                    new AlertDialog.Builder(this).setTitle("Kết quả AI")
-                        .setMessage(answer).setPositiveButton("Đóng", null)
-                        .setNeutralButton("Đưa mã sang ô lệnh", (d,w) -> {
-                            if (!code.isEmpty()) { input.setText(code); input.setSelection(input.length()); }
-                        }).show();
-                });
-            } catch (Exception e) {
-                runOnUiThread(() -> writeLine("AI lỗi: " + e.getMessage(), Color.RED, false));
-            } finally { if (c != null) c.disconnect(); }
-        }, "terminal-ai").start();
-    }
-
-    private String extractAiCode(String answer) {
-        String fence = new String(new char[]{96, 96, 96});
-        int start = answer.indexOf(fence);
-        if (start < 0) return "";
-        int body = answer.indexOf('\n', start);
-        int end = answer.indexOf(fence, body + 1);
-        if (body < 0 || end < 0) return "";
-        return answer.substring(body + 1, end).trim();
-    }
-
     private void addQuick(LinearLayout row, String command) {
         Button b = smallButton(command);
         b.setOnClickListener(v -> { input.setText(command); runCommand(); });
@@ -389,7 +336,7 @@ public class MainActivity extends Activity {
                 final String text = result.toString();
                 final String path = newPath;
                 runOnUiThread(() -> {
-                    if (!text.isEmpty()) output.append(text);
+                    if (!text.isEmpty()) { output.append(text); trimOutput(); }
                     currentPath = path;
                     statusLabel.setText("  SHELL READY");
                     busy = false;
@@ -597,7 +544,7 @@ public class MainActivity extends Activity {
                 }
                 String text = result.toString();
                 runOnUiThread(() -> {
-                    if (!text.isEmpty()) output.append(text);
+                    if (!text.isEmpty()) { output.append(text); trimOutput(); }
                     busy = false; statusLabel.setText("  VPS CONNECTED"); showPrompt();
                 });
             } catch (Exception e) {
@@ -641,7 +588,29 @@ public class MainActivity extends Activity {
         if (bold) s.setSpan(new android.text.style.StyleSpan(Typeface.BOLD), 0, s.length(),
                 android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
         output.append(s);
+        trimOutput();
         scroll.post(() -> scroll.fullScroll(View.FOCUS_DOWN));
+    }
+
+    private void pasteInput() {
+        ClipboardManager clipboard = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
+        if (clipboard != null && clipboard.hasPrimaryClip() && clipboard.getPrimaryClip().getItemCount() > 0) {
+            CharSequence value = clipboard.getPrimaryClip().getItemAt(0).coerceToText(this);
+            if (value != null) input.getText().replace(input.getSelectionStart(), input.getSelectionEnd(), value);
+            input.requestFocus();
+            statusLabel.setText("  PASTED FROM CLIPBOARD");
+        } else {
+            statusLabel.setText("  CLIPBOARD EMPTY");
+        }
+    }
+
+    private void trimOutput() {
+        // Keep the most recent terminal output so long sessions do not grow without bound.
+        int maxChars = 120000;
+        if (output.length() > maxChars) {
+            output.getEditableText().delete(0, output.length() - maxChars);
+            output.getEditableText().insert(0, "[... các dòng cũ đã được lược bớt ...]\\n");
+        }
     }
 
     private void copyOutput() {
