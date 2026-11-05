@@ -321,7 +321,7 @@ public class MainActivity extends Activity {
                 runOnUiThread(() -> {
                     if (!result.isEmpty()) {
                         output.append(result);
-                        if (!result.endsWith("\\n")) output.append("\\n");
+                        if (!result.endsWith("\n")) output.append("\n");
                     }
                     statusLabel.setText("  PYTHON READY");
                     busy = false;
