@@ -901,13 +901,26 @@ public class MainActivity extends Activity {
         sub.setTypeface(Typeface.MONOSPACE, Typeface.BOLD);
         titleBox.addView(title); titleBox.addView(sub);
         header.addView(titleBox, new LinearLayout.LayoutParams(0, -2, 1));
-        Button add = smallButton("+  THÊM APP");
-        add.setTextColor(Color.WHITE);
-        add.setTextSize(10);
-        add.setBackground(round(Color.rgb(112, 58, 220), 12));
-        add.setOnClickListener(v -> showAddPcAppDialog());
-        header.addView(add);
         page.addView(header);
+
+        Button add = new Button(this);
+        add.setText("+  THÊM ỨNG DỤNG");
+        add.setAllCaps(false);
+        add.setTextColor(Color.WHITE);
+        add.setTextSize(20);
+        add.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
+        add.setGravity(Gravity.CENTER);
+        add.setMinHeight(dp(132));
+        add.setPadding(dp(18), dp(22), dp(18), dp(22));
+        add.setBackground(neonPanel(Color.rgb(112, 58, 220), Color.rgb(190, 145, 255), 18));
+        add.setElevation(dp(7));
+        add.setClickable(true);
+        add.setFocusable(true);
+        LinearLayout.LayoutParams addLp = new LinearLayout.LayoutParams(-1, dp(132));
+        addLp.topMargin = dp(12);
+        addLp.bottomMargin = dp(4);
+        page.addView(add, addLp);
+        add.setOnClickListener(v -> showAddPcAppDialog());
 
         TextView intro = new TextView(this);
         intro.setText("Chọn ứng dụng để mở trong không gian PC. Discord sẽ hiển thị giao diện web máy tính giống video của bạn.");
