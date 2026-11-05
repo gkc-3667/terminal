@@ -34,6 +34,7 @@ import java.io.BufferedWriter;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.util.ArrayList;
+import java.util.Properties;
 
 public class MainActivity extends Activity {
     private static final int BG = Color.rgb(10, 14, 19);
