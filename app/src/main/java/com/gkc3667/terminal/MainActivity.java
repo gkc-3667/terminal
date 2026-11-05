@@ -348,122 +348,257 @@ public class MainActivity extends Activity {
     private void showHomeDashboard() {
         int w = (int)(getResources().getDisplayMetrics().widthPixels / getResources().getDisplayMetrics().density);
         boolean wide = w >= 700;
+        final int purple = Color.rgb(177, 70, 255);
+        final int cyan = Color.rgb(28, 205, 255);
+        final int pink = Color.rgb(255, 65, 220);
+        final int mint = Color.rgb(35, 235, 184);
         LinearLayout root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
-        root.setPadding(dp(wide ? 14 : 10), dp(10), dp(wide ? 14 : 10), dp(10));
-        root.setBackgroundColor(Color.rgb(12, 13, 29));
+        root.setPadding(dp(wide ? 14 : 9), dp(9), dp(wide ? 14 : 9), dp(8));
+        root.setBackground(new android.graphics.drawable.GradientDrawable(
+                android.graphics.drawable.GradientDrawable.Orientation.TL_BR,
+                new int[]{Color.rgb(8, 5, 27), Color.rgb(19, 8, 48), Color.rgb(7, 10, 30)}));
 
         LinearLayout top = new LinearLayout(this);
         top.setGravity(Gravity.CENTER_VERTICAL);
-        top.setPadding(dp(14), dp(10), dp(14), dp(10));
-        top.setBackground(round(Color.rgb(25, 27, 52), 14));
+        top.setPadding(dp(13), dp(9), dp(12), dp(9));
+        top.setBackground(neonPanel(Color.rgb(20, 13, 48), purple, 16));
+        TextView mark = new TextView(this);
+        mark.setText("⌁");
+        mark.setTextColor(Color.WHITE); mark.setTextSize(27);
+        mark.setGravity(Gravity.CENTER);
+        mark.setBackground(round(Color.rgb(91, 24, 190), 12));
+        top.addView(mark, new LinearLayout.LayoutParams(dp(43), dp(43)));
+        LinearLayout brandBox = new LinearLayout(this);
+        brandBox.setOrientation(LinearLayout.VERTICAL);
+        brandBox.setPadding(dp(10), 0, 0, 0);
         TextView brand = new TextView(this);
-        brand.setText("▣  TERMINAL PRO  👑");
-        brand.setTextColor(Color.rgb(190, 165, 255));
-        brand.setTextSize(18);
+        brand.setText("Terminal Pro");
+        brand.setTextColor(Color.WHITE); brand.setTextSize(19);
         brand.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
-        top.addView(brand, new LinearLayout.LayoutParams(0, -2, 1));
-        Button settings = smallButton("⚙ CÀI ĐẶT");
+        TextView subBrand = new TextView(this);
+        subBrand.setText("POWER YOUR DEVICE");
+        subBrand.setTextColor(Color.rgb(183, 154, 255)); subBrand.setTextSize(9);
+        subBrand.setTypeface(Typeface.MONOSPACE, Typeface.BOLD);
+        brandBox.addView(brand); brandBox.addView(subBrand);
+        top.addView(brandBox, new LinearLayout.LayoutParams(0, -2, 1));
+        Button settings = smallButton("⚙");
+        settings.setTextSize(19); settings.setTextColor(Color.WHITE);
         settings.setOnClickListener(v -> showAppearanceDialog());
-        top.addView(settings);
+        top.addView(settings, new LinearLayout.LayoutParams(dp(46), dp(42)));
         root.addView(top);
 
         LinearLayout body = new LinearLayout(this);
         body.setOrientation(wide ? LinearLayout.HORIZONTAL : LinearLayout.VERTICAL);
         LinearLayout.LayoutParams bodyLp = new LinearLayout.LayoutParams(-1, 0, 1);
-        bodyLp.topMargin = dp(10);
+        bodyLp.topMargin = dp(9);
         root.addView(body, bodyLp);
 
         if (wide) {
             LinearLayout side = new LinearLayout(this);
             side.setOrientation(LinearLayout.VERTICAL);
-            side.setPadding(dp(10), dp(14), dp(10), dp(12));
-            side.setBackground(round(Color.rgb(25, 27, 52), 16));
+            side.setPadding(dp(9), dp(13), dp(9), dp(12));
+            side.setBackground(neonPanel(Color.rgb(17, 12, 42), Color.rgb(91, 42, 190), 18));
             TextView logo = new TextView(this);
-            logo.setText("👑\\nTerminal Pro");
-            logo.setTextColor(Color.WHITE); logo.setTextSize(20); logo.setGravity(Gravity.CENTER);
+            logo.setText("👑\nTERMINAL PRO");
+            logo.setTextColor(Color.WHITE); logo.setTextSize(17); logo.setGravity(Gravity.CENTER);
             logo.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
-            side.addView(logo, new LinearLayout.LayoutParams(-1, dp(90)));
-            addHomeNav(side, "⌂  Trang chủ", () -> showHomeDashboard());
+            side.addView(logo, new LinearLayout.LayoutParams(-1, dp(82)));
+            addHomeNav(side, "⌂  Trang Chủ", () -> showHomeDashboard());
             addHomeNav(side, "›_  Terminal", () -> setContentView(terminalRoot));
-            addHomeNav(side, "▦  PC APP", () -> { setContentView(terminalRoot); openPcApps(); });
-            addHomeNav(side, "⇄  SSH Manager", () -> { setContentView(terminalRoot); showSshDialog(); });
-            addHomeNav(side, "⚙  Giao diện", () -> showAppearanceDialog());
-            TextView foot = new TextView(this); foot.setText("● SẴN SÀNG"); foot.setTextColor(Color.rgb(65, 230, 145));
-            foot.setPadding(dp(8), dp(18), dp(8), dp(8)); side.addView(foot);
-            LinearLayout.LayoutParams sideLp = new LinearLayout.LayoutParams(dp(172), -1);
+            addHomeNav(side, "▣  PC APP", () -> { setContentView(terminalRoot); openPcApps(); });
+            addHomeNav(side, "⇄  SSH / VPS", () -> { setContentView(terminalRoot); showSshDialog(); });
+            addHomeNav(side, "▦  Thư Viện", () -> { setContentView(terminalRoot); openPcApps(); });
+            addHomeNav(side, "⚙  Cài Đặt", () -> showAppearanceDialog());
+            View spacer = new View(this);
+            side.addView(spacer, new LinearLayout.LayoutParams(1, 0, 1));
+            TextView foot = new TextView(this);
+            foot.setText("●  SYSTEM ONLINE");
+            foot.setTextColor(mint); foot.setTextSize(10);
+            side.addView(foot);
+            LinearLayout.LayoutParams sideLp = new LinearLayout.LayoutParams(dp(164), -1);
             sideLp.rightMargin = dp(10); body.addView(side, sideLp);
         }
 
         ScrollView sc = new ScrollView(this);
         sc.setFillViewport(true);
+        sc.setVerticalScrollBarEnabled(false);
         LinearLayout main = new LinearLayout(this);
         main.setOrientation(LinearLayout.VERTICAL);
-        main.setPadding(dp(2), 0, dp(2), dp(8));
+        main.setPadding(dp(2), 0, dp(2), dp(10));
         sc.addView(main);
         body.addView(sc, new LinearLayout.LayoutParams(0, -1, 1));
 
         LinearLayout hero = new LinearLayout(this);
-        hero.setOrientation(wide ? LinearLayout.HORIZONTAL : LinearLayout.VERTICAL);
+        hero.setOrientation(LinearLayout.HORIZONTAL);
         hero.setGravity(Gravity.CENTER_VERTICAL);
-        hero.setPadding(dp(20), dp(20), dp(20), dp(20));
-        hero.setBackground(round(Color.rgb(38, 27, 105), 20));
-        TextView heroText = new TextView(this);
-        heroText.setText("TERMINAL PRO  👑\\n\\nBộ công cụ máy tính thu nhỏ\\nMạnh hơn  •  Đẹp hơn  •  Đa năng hơn");
-        heroText.setTextColor(Color.WHITE); heroText.setTextSize(wide ? 23 : 19);
-        heroText.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
-        hero.addView(heroText, new LinearLayout.LayoutParams(0, -2, 1));
-        TextView robot = new TextView(this); robot.setText("🤖\\n⚡"); robot.setTextSize(48); robot.setGravity(Gravity.CENTER);
-        hero.addView(robot, new LinearLayout.LayoutParams(wide ? dp(150) : -1, dp(115)));
-        LinearLayout.LayoutParams heroLp = new LinearLayout.LayoutParams(-1, -2); heroLp.bottomMargin = dp(12); main.addView(hero, heroLp);
+        hero.setPadding(dp(15), dp(16), dp(10), dp(15));
+        hero.setBackground(neonPanel(Color.rgb(39, 10, 91), purple, 22));
+        LinearLayout heroCopy = new LinearLayout(this);
+        heroCopy.setOrientation(LinearLayout.VERTICAL);
+        TextView eyebrow = new TextView(this);
+        eyebrow.setText("✦  YOUR DIGITAL WORKSPACE");
+        eyebrow.setTextColor(Color.rgb(213, 171, 255)); eyebrow.setTextSize(9);
+        eyebrow.setTypeface(Typeface.MONOSPACE, Typeface.BOLD);
+        TextView heroTitle = new TextView(this);
+        heroTitle.setText("Xin chào!\nTerminal Pro");
+        heroTitle.setTextColor(Color.WHITE); heroTitle.setTextSize(wide ? 25 : 20);
+        heroTitle.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
+        TextView heroDesc = new TextView(this);
+        heroDesc.setText("Mạnh mẽ  •  Đa năng  •  Siêu mượt");
+        heroDesc.setTextColor(Color.rgb(213, 202, 255)); heroDesc.setTextSize(10);
+        heroDesc.setPadding(0, dp(5), 0, 0);
+        heroCopy.addView(eyebrow); heroCopy.addView(heroTitle); heroCopy.addView(heroDesc);
+        hero.addView(heroCopy, new LinearLayout.LayoutParams(0, -2, 1));
+        TextView robot = new TextView(this);
+        robot.setText("🤖");
+        robot.setTextSize(wide ? 66 : 54);
+        robot.setGravity(Gravity.CENTER);
+        robot.setBackground(round(Color.rgb(75, 24, 150), 50));
+        robot.setElevation(dp(12));
+        hero.addView(robot, new LinearLayout.LayoutParams(dp(wide ? 124 : 91), dp(wide ? 124 : 91)));
+        LinearLayout.LayoutParams heroLp = new LinearLayout.LayoutParams(-1, -2);
+        heroLp.bottomMargin = dp(10); main.addView(hero, heroLp);
 
-        TextView quickTitle = homeSectionTitle("BẮT ĐẦU NHANH"); main.addView(quickTitle);
-        LinearLayout cards = new LinearLayout(this); cards.setOrientation(wide ? LinearLayout.HORIZONTAL : LinearLayout.VERTICAL);
-        addHomeCard(cards, "›_", "Mở Terminal", "Gõ lệnh và chạy Python", Color.rgb(86, 38, 205), () -> setContentView(terminalRoot));
-        addHomeCard(cards, "▦", "Mở PC APP", "Discord, YouTube và web app", Color.rgb(27, 73, 164), () -> { setContentView(terminalRoot); openPcApps(); });
-        addHomeCard(cards, "⇄", "Kết nối VPS", "Quản lý máy chủ qua SSH", Color.rgb(48, 54, 135), () -> { setContentView(terminalRoot); showSshDialog(); });
-        LinearLayout.LayoutParams cardsLp = new LinearLayout.LayoutParams(-1, -2); cardsLp.bottomMargin = dp(12); main.addView(cards, cardsLp);
+        LinearLayout welcome = new LinearLayout(this);
+        welcome.setGravity(Gravity.CENTER_VERTICAL);
+        welcome.setPadding(dp(12), dp(10), dp(12), dp(10));
+        welcome.setBackground(neonPanel(Color.rgb(25, 17, 62), Color.rgb(102, 52, 204), 14));
+        TextView welcomeIcon = new TextView(this);
+        welcomeIcon.setText("⭐"); welcomeIcon.setTextSize(22);
+        welcome.addView(welcomeIcon);
+        TextView welcomeText = new TextView(this);
+        welcomeText.setText("  Chào mừng bạn!\\n  Sẵn sàng khám phá các tính năng tuyệt vời? 🚀");
+        welcomeText.setTextColor(Color.WHITE); welcomeText.setTextSize(11);
+        welcome.addView(welcomeText, new LinearLayout.LayoutParams(0, -2, 1));
+        LinearLayout.LayoutParams welcomeLp = new LinearLayout.LayoutParams(-1, -2);
+        welcomeLp.bottomMargin = dp(9); main.addView(welcome, welcomeLp);
 
-        TextView appsTitle = homeSectionTitle("⭐ ỨNG DỤNG CỦA BẠN"); main.addView(appsTitle);
-        LinearLayout apps = new LinearLayout(this); apps.setOrientation(wide ? LinearLayout.HORIZONTAL : LinearLayout.VERTICAL);
-        addHomeCard(apps, "🎮", "PC APP", "Mở thư viện ứng dụng", Color.rgb(38, 48, 105), () -> { setContentView(terminalRoot); openPcApps(); });
-        addHomeCard(apps, "🐍", "Python", "Chạy python --version", Color.rgb(24, 83, 76), () -> { setContentView(terminalRoot); runPythonCommand("--version"); });
-        addHomeCard(apps, "⚙", "Tùy chỉnh", "Màu sắc và phông chữ", Color.rgb(75, 43, 112), () -> showAppearanceDialog());
-        main.addView(apps);
+        TextView quickTitle = homeSectionTitle("✦  TRUNG TÂM ĐIỀU KHIỂN");
+        main.addView(quickTitle);
+        LinearLayout cards = new LinearLayout(this);
+        cards.setOrientation(wide ? LinearLayout.HORIZONTAL : LinearLayout.VERTICAL);
+        addHomeCard(cards, "›_", "Terminal", "Chạy lệnh trực tiếp", purple, Color.rgb(55, 12, 112), () -> setContentView(terminalRoot));
+        addHomeCard(cards, "▣", "PC APP", "Ứng dụng web yêu thích", cyan, Color.rgb(8, 45, 101), () -> { setContentView(terminalRoot); openPcApps(); });
+        addHomeCard(cards, "⇄", "SSH / VPS", "Kết nối máy chủ từ xa", mint, Color.rgb(5, 67, 69), () -> { setContentView(terminalRoot); showSshDialog(); });
+        addHomeCard(cards, "▤", "Thư Viện", "Kho ứng dụng của bạn", pink, Color.rgb(85, 14, 82), () -> { setContentView(terminalRoot); openPcApps(); });
+        LinearLayout.LayoutParams cardsLp = new LinearLayout.LayoutParams(-1, -2);
+        cardsLp.bottomMargin = dp(9); main.addView(cards, cardsLp);
 
-        LinearLayout info = new LinearLayout(this); info.setOrientation(LinearLayout.VERTICAL); info.setPadding(dp(16), dp(14), dp(16), dp(14)); info.setBackground(round(Color.rgb(25, 27, 52), 16));
-        LinearLayout.LayoutParams infoLp = new LinearLayout.LayoutParams(-1, -2); infoLp.topMargin = dp(12); main.addView(info, infoLp);
-        TextView infoTitle = homeSectionTitle("▥  THÔNG TIN THIẾT BỊ"); info.addView(infoTitle);
-        addInfoLine(info, "Android", Build.VERSION.RELEASE + "  •  API " + Build.VERSION.SDK_INT);
-        addInfoLine(info, "Kiến trúc", android.text.TextUtils.join(", ", Build.SUPPORTED_ABIS));
-        addInfoLine(info, "Trạng thái", "●  Sẵn sàng");
-        TextView note = new TextView(this); note.setText("Terminal Pro • Luôn đồng hành cùng bạn!  ^_^\\nLưu ý: PC APP là ứng dụng web chạy trong WebView."); note.setTextColor(Color.rgb(165, 170, 205)); note.setTextSize(11); note.setPadding(dp(8), dp(12), dp(8), 0); info.addView(note);
+        LinearLayout lower = new LinearLayout(this);
+        lower.setOrientation(wide ? LinearLayout.HORIZONTAL : LinearLayout.VERTICAL);
+        LinearLayout device = new LinearLayout(this);
+        device.setOrientation(LinearLayout.VERTICAL);
+        device.setPadding(dp(12), dp(11), dp(12), dp(11));
+        device.setBackground(neonPanel(Color.rgb(18, 16, 52), Color.rgb(103, 47, 199), 16));
+        TextView deviceTitle = homeSectionTitle("⚡  THÔNG TIN HỆ THỐNG");
+        device.addView(deviceTitle);
+        addInfoLine(device, "Thiết bị", Build.MANUFACTURER + " " + Build.MODEL);
+        addInfoLine(device, "Kiến trúc", android.text.TextUtils.join(", ", Build.SUPPORTED_ABIS));
+        addInfoLine(device, "Android", Build.VERSION.RELEASE + "  •  API " + Build.VERSION.SDK_INT);
+        TextView ready = new TextView(this);
+        ready.setText("●  HỆ THỐNG SẴN SÀNG");
+        ready.setTextColor(mint); ready.setTextSize(10);
+        ready.setPadding(dp(8), dp(8), dp(8), dp(2));
+        device.addView(ready);
+        LinearLayout.LayoutParams deviceLp = new LinearLayout.LayoutParams(wide ? 0 : -1, -2, wide ? 1 : 0);
+        deviceLp.setMargins(dp(3), dp(3), dp(3), dp(3));
+        lower.addView(device, deviceLp);
 
+        LinearLayout activity = new LinearLayout(this);
+        activity.setOrientation(LinearLayout.VERTICAL);
+        activity.setPadding(dp(12), dp(11), dp(12), dp(11));
+        activity.setBackground(neonPanel(Color.rgb(18, 16, 52), Color.rgb(45, 88, 200), 16));
+        TextView activityTitle = homeSectionTitle("◷  HOẠT ĐỘNG GẦN ĐÂY");
+        activity.addView(activityTitle);
+        addInfoLine(activity, "Trạng thái", "Đã sẵn sàng sử dụng!");
+        addInfoLine(activity, "Python", "Python 3.11 tích hợp");
+        addInfoLine(activity, "Kết nối", "SSH / VPS có sẵn");
+        LinearLayout.LayoutParams activityLp = new LinearLayout.LayoutParams(wide ? 0 : -1, -2, wide ? 1 : 0);
+        activityLp.setMargins(dp(3), dp(3), dp(3), dp(3));
+        lower.addView(activity, activityLp);
+        main.addView(lower);
+
+        TextView footer = new TextView(this);
+        footer.setText("✦  TERMINAL PRO  •  ĐỈNH CAO CÔNG NGHỆ TRONG TẦM TAY BẠN  ✦");
+        footer.setTextColor(Color.rgb(204, 153, 255)); footer.setTextSize(9);
+        footer.setGravity(Gravity.CENTER);
+        footer.setPadding(dp(4), dp(12), dp(4), dp(8));
+        main.addView(footer);
         setContentView(root);
     }
 
+    private android.graphics.drawable.GradientDrawable neonPanel(int color, int stroke, int radius) {
+        android.graphics.drawable.GradientDrawable d = new android.graphics.drawable.GradientDrawable(
+                android.graphics.drawable.GradientDrawable.Orientation.TL_BR,
+                new int[]{color, Color.rgb(20, 13, 53)});
+        d.setCornerRadius(dp(radius));
+        d.setStroke(dp(1), stroke);
+        return d;
+    }
+
     private void addHomeNav(LinearLayout parent, String label, Runnable action) {
-        Button b = smallButton(label); b.setGravity(Gravity.CENTER_VERTICAL); b.setTextColor(Color.rgb(220, 220, 245));
-        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-1, dp(44)); lp.topMargin = dp(5); parent.addView(b, lp);
+        Button b = smallButton(label);
+        b.setGravity(Gravity.CENTER_VERTICAL);
+        b.setTextColor(Color.rgb(226, 216, 255));
+        b.setBackground(neonPanel(Color.rgb(30, 20, 68), Color.rgb(75, 44, 143), 11));
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-1, dp(43));
+        lp.topMargin = dp(6); parent.addView(b, lp);
         b.setOnClickListener(v -> action.run());
     }
 
     private TextView homeSectionTitle(String value) {
-        TextView t = new TextView(this); t.setText(value); t.setTextColor(Color.WHITE); t.setTextSize(14);
-        t.setTypeface(Typeface.DEFAULT, Typeface.BOLD); t.setPadding(dp(8), dp(12), dp(8), dp(9)); return t;
+        TextView t = new TextView(this);
+        t.setText(value); t.setTextColor(Color.WHITE); t.setTextSize(13);
+        t.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
+        t.setPadding(dp(7), dp(8), dp(7), dp(7));
+        return t;
     }
 
-    private void addHomeCard(LinearLayout parent, String icon, String title, String desc, int color, Runnable action) {
-        LinearLayout card = new LinearLayout(this); card.setOrientation(LinearLayout.VERTICAL); card.setPadding(dp(14), dp(12), dp(14), dp(12)); card.setBackground(round(color, 16));
-        TextView ico = new TextView(this); ico.setText(icon); ico.setTextSize(25); ico.setTextColor(Color.WHITE); card.addView(ico);
-        TextView name = new TextView(this); name.setText(title); name.setTextColor(Color.WHITE); name.setTextSize(15); name.setTypeface(Typeface.DEFAULT, Typeface.BOLD); name.setPadding(0, dp(5), 0, dp(3)); card.addView(name);
-        TextView sub = new TextView(this); sub.setText(desc); sub.setTextColor(Color.rgb(220, 220, 240)); sub.setTextSize(11); card.addView(sub);
+    private void addHomeCard(LinearLayout parent, String icon, String title, String desc,
+                             int glow, int fill, Runnable action) {
+        LinearLayout card = new LinearLayout(this);
+        card.setOrientation(LinearLayout.VERTICAL);
+        card.setGravity(Gravity.CENTER_VERTICAL);
+        card.setPadding(dp(13), dp(13), dp(13), dp(13));
+        card.setBackground(neonPanel(fill, glow, 17));
+        card.setElevation(dp(5));
+        TextView ico = new TextView(this);
+        ico.setText(icon); ico.setTextSize(27); ico.setTextColor(Color.WHITE);
+        ico.setGravity(Gravity.CENTER);
+        ico.setBackground(round(Color.rgb(69, 28, 139), 12));
+        card.addView(ico, new LinearLayout.LayoutParams(dp(49), dp(43)));
+        TextView name = new TextView(this);
+        name.setText(title); name.setTextColor(Color.WHITE); name.setTextSize(15);
+        name.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
+        name.setPadding(0, dp(8), 0, dp(3));
+        card.addView(name);
+        TextView sub = new TextView(this);
+        sub.setText(desc); sub.setTextColor(Color.rgb(219, 211, 248)); sub.setTextSize(10);
+        card.addView(sub);
+        TextView open = new TextView(this);
+        open.setText("MỞ NGAY  →");
+        open.setTextColor(Color.WHITE); open.setTextSize(10);
+        open.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
+        open.setGravity(Gravity.CENTER);
+        open.setPadding(dp(8), dp(7), dp(8), dp(7));
+        open.setBackground(round(glow, 20));
+        LinearLayout.LayoutParams openLp = new LinearLayout.LayoutParams(-2, -2);
+        openLp.topMargin = dp(10); card.addView(open, openLp);
         card.setOnClickListener(v -> action.run());
-        LinearLayout.LayoutParams lp = parent.getOrientation() == LinearLayout.HORIZONTAL ? new LinearLayout.LayoutParams(0, -2, 1) : new LinearLayout.LayoutParams(-1, -2); lp.setMargins(dp(4), dp(4), dp(4), dp(4)); parent.addView(card, lp);
+        LinearLayout.LayoutParams lp = parent.getOrientation() == LinearLayout.HORIZONTAL
+                ? new LinearLayout.LayoutParams(0, -2, 1)
+                : new LinearLayout.LayoutParams(-1, -2);
+        lp.setMargins(dp(3), dp(4), dp(3), dp(4));
+        parent.addView(card, lp);
     }
 
     private void addInfoLine(LinearLayout parent, String key, String value) {
-        TextView t = new TextView(this); t.setText(key + "     " + value); t.setTextColor(Color.rgb(205, 211, 235)); t.setTextSize(12); t.setPadding(dp(8), dp(5), dp(8), dp(5)); parent.addView(t);
+        TextView t = new TextView(this);
+        t.setText(key + "     " + value);
+        t.setTextColor(Color.rgb(218, 213, 243)); t.setTextSize(11);
+        t.setPadding(dp(7), dp(5), dp(7), dp(5));
+        parent.addView(t);
     }
 
     private void loadAppearance() {
