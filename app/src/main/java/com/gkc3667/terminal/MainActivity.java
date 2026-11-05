@@ -759,6 +759,8 @@ public class MainActivity extends Activity {
         list.setPadding(dp(14), dp(8), dp(14), dp(8));
         ScrollView sc = new ScrollView(this);
         sc.addView(list);
+        final AlertDialog picker = new AlertDialog.Builder(this).setTitle("Chọn ứng dụng hoặc game")
+            .setView(sc).setNegativeButton("ĐÓNG", null).create();
         for (String[] app : catalog) {
             LinearLayout row = new LinearLayout(this);
             row.setGravity(Gravity.CENTER_VERTICAL);
@@ -781,8 +783,6 @@ public class MainActivity extends Activity {
         LinearLayout.LayoutParams customLp = new LinearLayout.LayoutParams(-1, dp(44));
         customLp.topMargin = dp(10);
         list.addView(custom, customLp);
-        AlertDialog picker = new AlertDialog.Builder(this).setTitle("Chọn ứng dụng hoặc game")
-            .setView(sc).setNegativeButton("ĐÓNG", null).create();
         picker.show();
     }
 
