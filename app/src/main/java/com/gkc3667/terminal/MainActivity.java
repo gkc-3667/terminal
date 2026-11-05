@@ -242,7 +242,7 @@ public class MainActivity extends Activity {
         LinearLayout.LayoutParams discordTabLp = new LinearLayout.LayoutParams(0, dp(38), 1);
         discordTabLp.leftMargin = dp(7);
         tabs.addView(discordTab, discordTabLp);
-        discordTab.setOnClickListener(v -> openPcApps());
+        discordTab.setOnClickListener(v -> openDiscordPc());
         content.addView(tabs);
 
         LinearLayout info = new LinearLayout(this);
@@ -406,9 +406,9 @@ public class MainActivity extends Activity {
             side.addView(logo, new LinearLayout.LayoutParams(-1, dp(82)));
             addHomeNav(side, "⌂  Trang Chủ", () -> showHomeDashboard());
             addHomeNav(side, "›_  Terminal", () -> setContentView(terminalRoot));
-            addHomeNav(side, "▣  PC APP", () -> { setContentView(terminalRoot); openPcApps(); });
+            addHomeNav(side, "▣  Discord PC", () -> { setContentView(terminalRoot); openDiscordPc(); });
             addHomeNav(side, "⇄  SSH / VPS", () -> { setContentView(terminalRoot); showSshDialog(); });
-            addHomeNav(side, "▦  Thư Viện", () -> { setContentView(terminalRoot); openPcApps(); });
+            addHomeNav(side, "▦  Thư Viện", () -> { setContentView(terminalRoot); showPcAppLibrary(); });
             addHomeNav(side, "⚙  Cài Đặt", () -> showAppearanceDialog());
             View spacer = new View(this);
             side.addView(spacer, new LinearLayout.LayoutParams(1, 0, 1));
@@ -479,9 +479,9 @@ public class MainActivity extends Activity {
         LinearLayout cards = new LinearLayout(this);
         cards.setOrientation(wide ? LinearLayout.HORIZONTAL : LinearLayout.VERTICAL);
         addHomeCard(cards, "›_", "Terminal", "Chạy lệnh trực tiếp", purple, Color.rgb(55, 12, 112), () -> setContentView(terminalRoot));
-        addHomeCard(cards, "▣", "PC APP", "Ứng dụng web yêu thích", cyan, Color.rgb(8, 45, 101), () -> { setContentView(terminalRoot); openPcApps(); });
+        addHomeCard(cards, "▣", "Discord PC", "Giao diện máy tính • chat & server", cyan, Color.rgb(8, 45, 101), () -> { setContentView(terminalRoot); openDiscordPc(); });
         addHomeCard(cards, "⇄", "SSH / VPS", "Kết nối máy chủ từ xa", mint, Color.rgb(5, 67, 69), () -> { setContentView(terminalRoot); showSshDialog(); });
-        addHomeCard(cards, "▤", "Thư Viện", "Kho ứng dụng của bạn", pink, Color.rgb(85, 14, 82), () -> { setContentView(terminalRoot); openPcApps(); });
+        addHomeCard(cards, "▤", "Thư Viện", "Kho ứng dụng của bạn", pink, Color.rgb(85, 14, 82), () -> { setContentView(terminalRoot); showPcAppLibrary(); });
         LinearLayout.LayoutParams cardsLp = new LinearLayout.LayoutParams(-1, -2);
         cardsLp.bottomMargin = dp(9); main.addView(cards, cardsLp);
 
@@ -964,6 +964,15 @@ public class MainActivity extends Activity {
             cookies.setAcceptCookie(true);
             if (Build.VERSION.SDK_INT >= 21) cookies.setAcceptThirdPartyCookies(existingWeb, true);
             existingWeb.setWebViewClient(new WebViewClient() {
+                @Override public void onPageFinished(WebView view, String url) {
+                    super.onPageFinished(view, url);
+                    // Give Discord a desktop-sized layout viewport on narrow Android screens.
+                    if (url != null && url.startsWith("https://discord.com/")) {
+                        view.evaluateJavascript("(function(){var m=document.querySelector('meta[name=viewport]');" +
+                            "if(!m){m=document.createElement('meta');m.name='viewport';document.head.appendChild(m);}" +
+                            "m.setAttribute('content','width=1200, initial-scale=0.75, maximum-scale=2.0, user-scalable=yes');})();", null);
+                    }
+                }
                 @Override public void onReceivedError(WebView view, android.webkit.WebResourceRequest request,
                                                        android.webkit.WebResourceError error) {
                     if (request.isForMainFrame()) showWebErrorPage(view, error.getDescription().toString());
@@ -1027,8 +1036,12 @@ public class MainActivity extends Activity {
         web.loadDataWithBaseURL(null, html, "text/html", "UTF-8", null);
     }
 
+    private void openDiscordPc() {
+        openPcApp("Discord PC", "https://discord.com/app");
+    }
+
     private void openPcApps() {
-        showPcAppLibrary();
+        openDiscordPc();
     }
 
     private void addQuick(LinearLayout row, String command) {
