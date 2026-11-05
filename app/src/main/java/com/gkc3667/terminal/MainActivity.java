@@ -1468,7 +1468,7 @@ public class MainActivity extends Activity {
         int maxChars = 14000;
         if (output.length() > maxChars) {
             int remove = output.length() - maxChars;
-            int newline = output.getText().toString().indexOf('\\n', remove);
+            int newline = output.getText().toString().indexOf('\n', remove);
             output.getEditableText().delete(0, newline >= 0 ? newline + 1 : remove);
         }
     }
