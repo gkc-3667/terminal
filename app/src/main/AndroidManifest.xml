@@ -6,7 +6,7 @@
         android:hardwareAccelerated="true"
         android:name="com.chaquo.python.android.PyApplication"
         android:allowBackup="false"
-        android:label="Terminal Pro"
+        android:label="GKC APP"
         android:icon="@drawable/ic_terminal"
         android:theme="@android:style/Theme.Material.NoActionBar"
         android:usesCleartextTraffic="false">
