@@ -28,6 +28,7 @@ import android.widget.EditText;
 import android.widget.HorizontalScrollView;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
+import android.widget.SeekBar;
 import android.widget.TextView;
 import android.webkit.WebView;
 import android.webkit.WebSettings;
@@ -48,12 +49,12 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 public class MainActivity extends Activity {
-    private static final int BG = Color.rgb(10, 14, 19);
-    private static final int PANEL = Color.rgb(18, 25, 33);
-    private static final int GREEN = Color.rgb(92, 230, 157);
-    private static final int BLUE = Color.rgb(104, 174, 255);
-    private static final int FG = Color.rgb(226, 234, 242);
-    private static final int MUTED = Color.rgb(132, 148, 164);
+    private static int BG = Color.rgb(10, 14, 19);
+    private static int PANEL = Color.rgb(18, 25, 33);
+    private static int GREEN = Color.rgb(92, 230, 157);
+    private static int BLUE = Color.rgb(104, 174, 255);
+    private static int FG = Color.rgb(226, 234, 242);
+    private static int MUTED = Color.rgb(132, 148, 164);
 
     private TextView output, pathLabel, statusLabel;
     private EditText input;
@@ -73,6 +74,9 @@ public class MainActivity extends Activity {
     private WebView pcWebView;
     private String pcWebCurrentUrl = "";
     private String currentPath = "";
+    private boolean discordTheme = false;
+    private int terminalFontSize = 15;
+    private String terminalFont = "mono";
 
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
@@ -80,6 +84,7 @@ public class MainActivity extends Activity {
         getWindow().setNavigationBarColor(BG);
         getWindow().getDecorView().setSystemUiVisibility(0);
         currentPath = getFilesDir().getAbsolutePath();
+        loadAppearance();
         buildUi();
         startShell();
         writeLine("TERMINAL PRO  •  ANDROID SHELL", GREEN, true);
@@ -202,6 +207,11 @@ public class MainActivity extends Activity {
         LinearLayout.LayoutParams clearLp = new LinearLayout.LayoutParams(-2, dp(36));
         clearLp.leftMargin = dp(6);
         header.addView(clear, clearLp);
+        Button appearance = smallButton("Aa  GIAO DIỆN");
+        appearance.setOnClickListener(v -> showAppearanceDialog());
+        LinearLayout.LayoutParams appearanceLp = new LinearLayout.LayoutParams(-2, dp(36));
+        appearanceLp.leftMargin = dp(6);
+        header.addView(appearance, appearanceLp);
         content.addView(header);
 
         LinearLayout tabs = new LinearLayout(this);
@@ -250,11 +260,11 @@ public class MainActivity extends Activity {
 
         scroll = new ScrollView(this);
         scroll.setFillViewport(true);
-        scroll.setBackground(round(Color.rgb(6, 9, 13), 12));
+        scroll.setBackground(round(discordTheme ? Color.rgb(30, 31, 34) : Color.rgb(6, 9, 13), 12));
         output = new TextView(this);
         output.setTextColor(FG);
-        output.setTextSize(desktopMode ? 15 : 13);
-        output.setTypeface(Typeface.MONOSPACE);
+        output.setTextSize(terminalFontSize);
+        output.setTypeface(resolveTerminalTypeface());
         output.setTextIsSelectable(true);
         output.setPadding(dp(12), dp(12), dp(12), dp(16));
         output.setLineSpacing(dp(2), 1.0f);
@@ -291,8 +301,8 @@ public class MainActivity extends Activity {
         input.setTextColor(Color.WHITE);
         input.setHintTextColor(MUTED);
         input.setHint("Nhập lệnh...");
-        input.setTextSize(14);
-        input.setTypeface(Typeface.MONOSPACE);
+        input.setTextSize(terminalFontSize);
+        input.setTypeface(resolveTerminalTypeface());
         input.setPadding(dp(5), 0, dp(5), 0);
         input.setBackgroundColor(Color.TRANSPARENT);
         // Cho phép bàn phím Android ghép dấu tiếng Việt (IME composing).
@@ -332,6 +342,121 @@ public class MainActivity extends Activity {
     }
 
 
+
+    private void loadAppearance() {
+        SharedPreferences p = getSharedPreferences("terminal_appearance", MODE_PRIVATE);
+        discordTheme = p.getBoolean("discord_theme", false);
+        terminalFontSize = p.getInt("font_size", 15);
+        terminalFont = p.getString("font_family", "mono");
+        applyThemeColors();
+    }
+
+    private void applyThemeColors() {
+        if (discordTheme) {
+            BG = Color.rgb(49, 51, 56);
+            PANEL = Color.rgb(43, 45, 49);
+            GREEN = Color.rgb(88, 101, 242);
+            BLUE = Color.rgb(0, 168, 252);
+            FG = Color.rgb(242, 243, 245);
+            MUTED = Color.rgb(181, 186, 193);
+        } else {
+            BG = Color.rgb(10, 14, 19);
+            PANEL = Color.rgb(18, 25, 33);
+            GREEN = Color.rgb(92, 230, 157);
+            BLUE = Color.rgb(104, 174, 255);
+            FG = Color.rgb(226, 234, 242);
+            MUTED = Color.rgb(132, 148, 164);
+        }
+    }
+
+    private Typeface resolveTerminalTypeface() {
+        if ("sans".equals(terminalFont)) return Typeface.create("sans-serif", Typeface.NORMAL);
+        if ("serif".equals(terminalFont)) return Typeface.create("serif", Typeface.NORMAL);
+        return Typeface.MONOSPACE;
+    }
+
+    private void showAppearanceDialog() {
+        LinearLayout form = new LinearLayout(this);
+        form.setOrientation(LinearLayout.VERTICAL);
+        form.setPadding(dp(20), dp(8), dp(20), dp(8));
+
+        TextView themeLabel = new TextView(this);
+        themeLabel.setText("GIAO DIỆN");
+        themeLabel.setTextColor(FG);
+        themeLabel.setTextSize(12);
+        form.addView(themeLabel);
+        Spinner theme = new Spinner(this);
+        theme.setAdapter(new ArrayAdapter<String>(this, android.R.layout.simple_spinner_dropdown_item,
+                new String[]{"Terminal Pro (xanh đen)", "Discord (tím than)"}));
+        theme.setSelection(discordTheme ? 1 : 0);
+        form.addView(theme, new LinearLayout.LayoutParams(-1, dp(48)));
+
+        TextView fontLabel = new TextView(this);
+        fontLabel.setText("PHÔNG CHỮ");
+        fontLabel.setTextColor(FG);
+        fontLabel.setTextSize(12);
+        fontLabel.setPadding(0, dp(12), 0, dp(3));
+        form.addView(fontLabel);
+        Spinner font = new Spinner(this);
+        font.setAdapter(new ArrayAdapter<String>(this, android.R.layout.simple_spinner_dropdown_item,
+                new String[]{"Monospace (Terminal)", "Sans Serif (Discord)", "Serif"}));
+        font.setSelection("sans".equals(terminalFont) ? 1 : ("serif".equals(terminalFont) ? 2 : 0));
+        form.addView(font, new LinearLayout.LayoutParams(-1, dp(48)));
+
+        TextView sizeLabel = new TextView(this);
+        sizeLabel.setText("CỠ CHỮ: " + terminalFontSize + " SP");
+        sizeLabel.setTextColor(FG);
+        sizeLabel.setPadding(0, dp(12), 0, dp(2));
+        form.addView(sizeLabel);
+        SeekBar size = new SeekBar(this);
+        size.setMax(14);
+        size.setProgress(Math.max(0, Math.min(14, terminalFontSize - 10)));
+        size.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override public void onProgressChanged(SeekBar bar, int value, boolean fromUser) {
+                sizeLabel.setText("CỠ CHỮ: " + (value + 10) + " SP");
+            }
+            @Override public void onStartTrackingTouch(SeekBar bar) {}
+            @Override public void onStopTrackingTouch(SeekBar bar) {}
+        });
+        form.addView(size);
+
+        TextView preview = new TextView(this);
+        preview.setText("Aa Bb 123  •  Terminal Pro");
+        preview.setTextColor(FG);
+        preview.setTextSize(terminalFontSize);
+        preview.setPadding(dp(10), dp(12), dp(10), dp(12));
+        preview.setBackground(round(PANEL, 10));
+        form.addView(preview);
+        font.setOnItemSelectedListener(new android.widget.AdapterView.OnItemSelectedListener() {
+            @Override public void onItemSelected(android.widget.AdapterView<?> parent, View view, int position, long id) {
+                preview.setTypeface(position == 1 ? Typeface.create("sans-serif", 0) :
+                    (position == 2 ? Typeface.create("serif", 0) : Typeface.MONOSPACE));
+            }
+            @Override public void onNothingSelected(android.widget.AdapterView<?> parent) {}
+        });
+        size.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override public void onProgressChanged(SeekBar bar, int value, boolean fromUser) {
+                sizeLabel.setText("CỠ CHỮ: " + (value + 10) + " SP");
+                preview.setTextSize(value + 10);
+            }
+            @Override public void onStartTrackingTouch(SeekBar bar) {}
+            @Override public void onStopTrackingTouch(SeekBar bar) {}
+        });
+
+        new AlertDialog.Builder(this).setTitle("Tùy chỉnh giao diện")
+            .setView(form).setNegativeButton("HỦY", null)
+            .setPositiveButton("LƯU", (d, w) -> {
+                discordTheme = theme.getSelectedItemPosition() == 1;
+                terminalFont = font.getSelectedItemPosition() == 1 ? "sans" :
+                    (font.getSelectedItemPosition() == 2 ? "serif" : "mono");
+                terminalFontSize = size.getProgress() + 10;
+                getSharedPreferences("terminal_appearance", MODE_PRIVATE).edit()
+                    .putBoolean("discord_theme", discordTheme)
+                    .putString("font_family", terminalFont)
+                    .putInt("font_size", terminalFontSize).apply();
+                recreate();
+            }).show();
+    }
 
     private SharedPreferences pcAppPrefs() {
         return getSharedPreferences("pc_app_library", MODE_PRIVATE);
@@ -577,7 +702,22 @@ public class MainActivity extends Activity {
             android.webkit.CookieManager cookies = android.webkit.CookieManager.getInstance();
             cookies.setAcceptCookie(true);
             if (Build.VERSION.SDK_INT >= 21) cookies.setAcceptThirdPartyCookies(existingWeb, true);
-            existingWeb.setWebViewClient(new WebViewClient());
+            existingWeb.setWebViewClient(new WebViewClient() {
+                @Override public void onReceivedError(WebView view, android.webkit.WebResourceRequest request,
+                                                       android.webkit.WebResourceError error) {
+                    if (request.isForMainFrame()) showWebErrorPage(view, error.getDescription().toString());
+                }
+                @Override public void onReceivedHttpError(WebView view, android.webkit.WebResourceRequest request,
+                                                           android.webkit.WebResourceResponse response) {
+                    if (request.isForMainFrame() && response.getStatusCode() >= 400)
+                        showWebErrorPage(view, "Máy chủ trả về lỗi HTTP " + response.getStatusCode());
+                }
+                @Override public void onReceivedSslError(WebView view, android.webkit.SslErrorHandler handler,
+                                                          android.net.http.SslError error) {
+                    handler.cancel();
+                    showWebErrorPage(view, "Chứng chỉ bảo mật của trang web không hợp lệ. Kết nối đã bị chặn.");
+                }
+            });
             existingWeb.setWebChromeClient(new WebChromeClient());
         }
         final WebView web = existingWeb;
@@ -610,6 +750,20 @@ public class MainActivity extends Activity {
             pcWebCurrentUrl = appUrl;
             web.loadUrl(appUrl);
         }
+    }
+
+    private void showWebErrorPage(WebView web, String detail) {
+        String safe = detail == null ? "Không thể kết nối tới trang web." :
+            detail.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;");
+        String html = "<html><meta name='viewport' content='width=device-width,initial-scale=1'>" +
+            "<body style='margin:0;background:#1e1f22;color:#f2f3f5;font-family:Arial,sans-serif;display:flex;" +
+            "align-items:center;justify-content:center;height:100vh;text-align:center'>" +
+            "<div style='padding:28px;max-width:520px'><div style='font-size:42px'>☁</div>" +
+            "<h2>Không thể tải ứng dụng</h2><p style='color:#b5bac1'>" + safe + "</p>" +
+            "<p style='color:#b5bac1'>Kiểm tra mạng rồi thử tải lại. Bạn cũng có thể mở bằng Chrome.</p>" +
+            "<button onclick='location.reload()' style='background:#5865f2;color:white;border:0;" +
+            "padding:12px 22px;border-radius:8px;font-weight:bold'>THỬ LẠI</button></div></body></html>";
+        web.loadDataWithBaseURL(null, html, "text/html", "UTF-8", null);
     }
 
     private void openPcApps() {
