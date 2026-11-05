@@ -752,7 +752,8 @@ public class MainActivity extends Activity {
             {"GeForce NOW", "https://play.geforcenow.com"},
             {"Telegram Web", "https://web.telegram.org"},
             {"Spotify", "https://open.spotify.com"},
-            {"Minecraft", "https://www.minecraft.net"}
+            {"Minecraft", "https://www.minecraft.net"},
+            {"Free Fire", "https://ff.garena.com/"}
         };
         LinearLayout list = new LinearLayout(this);
         list.setOrientation(LinearLayout.VERTICAL);
@@ -806,6 +807,46 @@ public class MainActivity extends Activity {
             }).show();
     }
 
+    private void showEditPcAppDialog(String appId, String oldName, String oldUrl) {
+        LinearLayout form = new LinearLayout(this);
+        form.setOrientation(LinearLayout.VERTICAL);
+        form.setPadding(dp(18), dp(8), dp(18), dp(8));
+        EditText name = field("Tên ứng dụng", false);
+        name.setText(oldName);
+        EditText url = field("Địa chỉ web (https://...)", false);
+        url.setText(oldUrl);
+        addFormField(form, "Tên hiển thị", name);
+        addFormField(form, "Đường dẫn", url);
+        new AlertDialog.Builder(this).setTitle("Đổi tên hoặc đường dẫn")
+            .setView(form).setNegativeButton("HỦY", null)
+            .setPositiveButton("LƯU", (d, w) -> {
+                String n = name.getText().toString().trim();
+                String u = url.getText().toString().trim();
+                if (n.isEmpty() || !(u.startsWith("https://") || u.startsWith("http://"))) {
+                    new AlertDialog.Builder(this).setMessage("Tên hoặc link không hợp lệ. Link phải bắt đầu bằng http:// hoặc https://.")
+                        .setPositiveButton("OK", null).show();
+                    return;
+                }
+                JSONArray current = getPcApps();
+                JSONArray updated = new JSONArray();
+                for (int j = 0; j < current.length(); j++) {
+                    JSONObject item = current.optJSONObject(j);
+                    if (item == null) continue;
+                    if (item.optString("id").equals(appId)) {
+                        try {
+                            JSONObject changed = new JSONObject();
+                            changed.put("id", appId);
+                            changed.put("name", n);
+                            changed.put("url", u);
+                            updated.put(changed);
+                        } catch (Exception ignored) {}
+                    } else updated.put(item);
+                }
+                savePcApps(updated);
+                showPcAppLibrary();
+            }).show();
+    }
+
     private void showPcAppLibrary() {
         if (pcLibraryDialog != null && pcLibraryDialog.isShowing()) pcLibraryDialog.dismiss();
         Dialog dialog = new Dialog(this);
@@ -829,7 +870,7 @@ public class MainActivity extends Activity {
         page.addView(header);
 
         TextView hint = new TextView(this);
-        hint.setText("Ứng dụng đã thêm được lưu trên thiết bị. Nhấn vào tên để mở; nhấn ⋮ để xóa.");
+        hint.setText("Ứng dụng đã thêm được lưu trên thiết bị. Nhấn tên để mở; nhấn ⋮ để đổi tên, đổi link hoặc xóa.");
         hint.setTextColor(MUTED);
         hint.setTextSize(11);
         hint.setPadding(0, dp(4), 0, dp(12));
@@ -875,15 +916,24 @@ public class MainActivity extends Activity {
             Button menu = smallButton("⋮");
             menu.setTextSize(18);
             menu.setOnClickListener(v -> new AlertDialog.Builder(this)
-                .setTitle(appName).setItems(new String[]{"Xóa ứng dụng"}, (d, which) -> {
-                    JSONArray current = getPcApps();
-                    JSONArray kept = new JSONArray();
-                    for (int j = 0; j < current.length(); j++) {
-                        JSONObject candidate = current.optJSONObject(j);
-                        if (candidate != null && !candidate.optString("id").equals(appId)) kept.put(candidate);
+                .setTitle(appName).setItems(new String[]{"Đổi tên / đổi link", "Xóa ứng dụng"}, (d, which) -> {
+                    if (which == 0) {
+                        showEditPcAppDialog(appId, appName, appUrl);
+                    } else {
+                        new AlertDialog.Builder(this).setTitle("Xóa " + appName + "?")
+                            .setMessage("Ứng dụng sẽ bị xóa khỏi thư viện trên thiết bị.")
+                            .setNegativeButton("HỦY", null)
+                            .setPositiveButton("XÓA", (confirm, w) -> {
+                                JSONArray current = getPcApps();
+                                JSONArray kept = new JSONArray();
+                                for (int j = 0; j < current.length(); j++) {
+                                    JSONObject candidate = current.optJSONObject(j);
+                                    if (candidate != null && !candidate.optString("id").equals(appId)) kept.put(candidate);
+                                }
+                                savePcApps(kept);
+                                showPcAppLibrary();
+                            }).show();
                     }
-                    savePcApps(kept);
-                    showPcAppLibrary();
                 }).show());
             row.addView(menu);
             LinearLayout.LayoutParams rowLp = new LinearLayout.LayoutParams(-1, -2);
