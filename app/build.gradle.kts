@@ -18,6 +18,10 @@ android {
     }
 }
 
+dependencies {
+    implementation("com.github.mwiede:jsch:0.2.20")
+}
+
 chaquopy {
     defaultConfig {
         version = "3.11"
