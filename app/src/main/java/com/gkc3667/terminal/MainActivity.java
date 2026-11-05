@@ -547,15 +547,15 @@ public class MainActivity extends Activity {
         toolbar.addView(close, closeLp);
         page.addView(toolbar);
 
-        WebView web = pcWebView;
-        if (web == null) {
-            web = new WebView(getApplicationContext());
-            pcWebView = web;
-            web.setFocusable(true);
-            web.setFocusableInTouchMode(true);
-            web.setLayerType(View.LAYER_TYPE_HARDWARE, null);
-            web.setOverScrollMode(View.OVER_SCROLL_NEVER);
-            WebSettings settings = web.getSettings();
+        WebView existingWeb = pcWebView;
+        if (existingWeb == null) {
+            existingWeb = new WebView(this);
+            pcWebView = existingWeb;
+            existingWeb.setFocusable(true);
+            existingWeb.setFocusableInTouchMode(true);
+            existingWeb.setLayerType(View.LAYER_TYPE_HARDWARE, null);
+            existingWeb.setOverScrollMode(View.OVER_SCROLL_NEVER);
+            WebSettings settings = existingWeb.getSettings();
             settings.setJavaScriptEnabled(true);
             settings.setDomStorageEnabled(true);
             settings.setDatabaseEnabled(true);
@@ -577,9 +577,10 @@ public class MainActivity extends Activity {
             android.webkit.CookieManager cookies = android.webkit.CookieManager.getInstance();
             cookies.setAcceptCookie(true);
             if (Build.VERSION.SDK_INT >= 21) cookies.setAcceptThirdPartyCookies(web, true);
-            web.setWebViewClient(new WebViewClient());
-            web.setWebChromeClient(new WebChromeClient());
+            existingWeb.setWebViewClient(new WebViewClient());
+            existingWeb.setWebChromeClient(new WebChromeClient());
         }
+        final WebView web = existingWeb;
         if (web.getParent() instanceof ViewGroup) {
             ((ViewGroup) web.getParent()).removeView(web);
         }
