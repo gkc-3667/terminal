@@ -124,7 +124,7 @@ public class MainActivity extends Activity {
             sideBrand.setGravity(Gravity.CENTER);
             sidebar.addView(sideBrand, new LinearLayout.LayoutParams(-1, dp(52)));
             TextView sideTitle = new TextView(this);
-            sideTitle.setText("TERMINAL\\nPRO");
+            sideTitle.setText("GKC\\nWORKSPACE");
             sideTitle.setTextColor(FG);
             sideTitle.setTextSize(13);
             sideTitle.setTypeface(Typeface.MONOSPACE, Typeface.BOLD);
@@ -269,6 +269,8 @@ public class MainActivity extends Activity {
         output.setTextSize(terminalFontSize);
         output.setTypeface(resolveTerminalTypeface());
         output.setTextIsSelectable(true);
+        output.setFontFeatureSettings("kern");
+        output.setTextIsSelectable(true);
         output.setPadding(dp(12), dp(12), dp(12), dp(16));
         output.setLineSpacing(dp(2), 1.0f);
         scroll.addView(output, new ScrollView.LayoutParams(-1, -2));
@@ -311,7 +313,6 @@ public class MainActivity extends Activity {
         // Cho phép bàn phím Android ghép dấu tiếng Việt (IME composing).
         input.setInputType(InputType.TYPE_CLASS_TEXT);
         input.setImeOptions(EditorInfo.IME_ACTION_SEND | EditorInfo.IME_FLAG_NO_EXTRACT_UI);
-        input.setImeOptions(EditorInfo.IME_ACTION_SEND);
         input.setOnEditorActionListener((v, action, event) -> {
             if (action == EditorInfo.IME_ACTION_SEND ||
                 (event != null && event.getKeyCode() == KeyEvent.KEYCODE_ENTER)) {
@@ -427,7 +428,7 @@ public class MainActivity extends Activity {
         main.setOrientation(LinearLayout.VERTICAL);
         main.setPadding(dp(2), 0, dp(2), dp(10));
         sc.addView(main);
-        body.addView(sc, new LinearLayout.LayoutParams(0, -1, 1));
+        body.addView(sc, wide ? new LinearLayout.LayoutParams(0, -1, 1) : new LinearLayout.LayoutParams(-1, -1));
 
         LinearLayout hero = new LinearLayout(this);
         hero.setOrientation(LinearLayout.HORIZONTAL);
@@ -1147,7 +1148,7 @@ public class MainActivity extends Activity {
                 runOnUiThread(() -> {
                     if (!text.isEmpty()) { output.append(text); trimOutput(); }
                     currentPath = path;
-                    statusLabel.setText("  SHELL READY");
+                    statusLabel.setText("  SHELL READY  •  EXIT CODE TRACKED");
                     busy = false;
                     showPrompt();
                 });
@@ -1415,10 +1416,11 @@ public class MainActivity extends Activity {
 
     private void trimOutput() {
         // Keep the most recent terminal output so long sessions do not grow without bound.
-        int maxChars = 18000;
+        int maxChars = 14000;
         if (output.length() > maxChars) {
-            String recent = output.getText().subSequence(output.length() - maxChars, output.length()).toString();
-            output.setText("[... các dòng cũ đã được lược bớt ...]\\n" + recent);
+            int remove = output.length() - maxChars;
+            int newline = output.getText().toString().indexOf('\\n', remove);
+            output.getEditableText().delete(0, newline >= 0 ? newline + 1 : remove);
         }
     }
 
