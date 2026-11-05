@@ -20,6 +20,7 @@ import android.net.Uri;
 import android.view.Gravity;
 import android.view.KeyEvent;
 import android.view.View;
+import android.view.ViewGroup;
 import android.view.inputmethod.EditorInfo;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.Button;
@@ -543,36 +544,43 @@ public class MainActivity extends Activity {
         toolbar.addView(close, closeLp);
         page.addView(toolbar);
 
-        WebView web = new WebView(this);
-        web.setFocusable(true);
-        web.setFocusableInTouchMode(true);
-        web.setLayerType(View.LAYER_TYPE_HARDWARE, null);
-        web.setOverScrollMode(View.OVER_SCROLL_NEVER);
-        WebSettings settings = web.getSettings();
-        settings.setJavaScriptEnabled(true);
-        settings.setDomStorageEnabled(true);
-        settings.setDatabaseEnabled(true);
-        settings.setLoadWithOverviewMode(false);
-        settings.setUseWideViewPort(true);
-        settings.setSupportZoom(true);
-        settings.setBuiltInZoomControls(true);
-        settings.setDisplayZoomControls(false);
-        settings.setMediaPlaybackRequiresUserGesture(false);
-        settings.setLoadsImagesAutomatically(true);
-        settings.setCacheMode(WebSettings.LOAD_DEFAULT);
-        settings.setJavaScriptCanOpenWindowsAutomatically(true);
-        // User-Agent desktop hợp lệ; giữ nguyên phiên bản Chromium đi kèm WebView.
-        String currentUa = settings.getUserAgentString();
-        java.util.regex.Matcher chromeVersion = java.util.regex.Pattern
-            .compile("Chrome/([0-9.]+)").matcher(currentUa);
-        String version = chromeVersion.find() ? chromeVersion.group(1) : "120.0.0.0";
-        settings.setUserAgentString("Mozilla/5.0 (X11; CrOS x86_64 16093.0.0) " +
-            "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/" + version + " Safari/537.36");
-        android.webkit.CookieManager cookies = android.webkit.CookieManager.getInstance();
-        cookies.setAcceptCookie(true);
-        if (Build.VERSION.SDK_INT >= 21) cookies.setAcceptThirdPartyCookies(web, true);
-        web.setWebViewClient(new WebViewClient());
-        web.setWebChromeClient(new WebChromeClient());
+        WebView web = pcWebView;
+        if (web == null) {
+            web = new WebView(getApplicationContext());
+            pcWebView = web;
+            web.setFocusable(true);
+            web.setFocusableInTouchMode(true);
+            web.setLayerType(View.LAYER_TYPE_HARDWARE, null);
+            web.setOverScrollMode(View.OVER_SCROLL_NEVER);
+            WebSettings settings = web.getSettings();
+            settings.setJavaScriptEnabled(true);
+            settings.setDomStorageEnabled(true);
+            settings.setDatabaseEnabled(true);
+            settings.setLoadWithOverviewMode(false);
+            settings.setUseWideViewPort(true);
+            settings.setSupportZoom(true);
+            settings.setBuiltInZoomControls(true);
+            settings.setDisplayZoomControls(false);
+            settings.setMediaPlaybackRequiresUserGesture(false);
+            settings.setLoadsImagesAutomatically(true);
+            settings.setCacheMode(WebSettings.LOAD_DEFAULT);
+            settings.setJavaScriptCanOpenWindowsAutomatically(true);
+            String currentUa = settings.getUserAgentString();
+            java.util.regex.Matcher chromeVersion = java.util.regex.Pattern
+                .compile("Chrome/([0-9.]+)").matcher(currentUa);
+            String version = chromeVersion.find() ? chromeVersion.group(1) : "120.0.0.0";
+            settings.setUserAgentString("Mozilla/5.0 (X11; CrOS x86_64 16093.0.0) " +
+                "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/" + version + " Safari/537.36");
+            android.webkit.CookieManager cookies = android.webkit.CookieManager.getInstance();
+            cookies.setAcceptCookie(true);
+            if (Build.VERSION.SDK_INT >= 21) cookies.setAcceptThirdPartyCookies(web, true);
+            web.setWebViewClient(new WebViewClient());
+            web.setWebChromeClient(new WebChromeClient());
+        }
+        if (web.getParent() instanceof ViewGroup) {
+            ((ViewGroup) web.getParent()).removeView(web);
+        }
+        web.onResume();
         page.addView(web, new LinearLayout.LayoutParams(-1, 0, 1));
         back.setOnClickListener(v -> { if (web.canGoBack()) web.goBack(); });
         reload.setOnClickListener(v -> web.reload());
@@ -586,13 +594,18 @@ public class MainActivity extends Activity {
         close.setOnClickListener(v -> dialog.dismiss());
         dialog.setContentView(page);
         dialog.setOnDismissListener(d -> {
-            cookies.flush();
+            android.webkit.CookieManager.getInstance().flush();
             web.onPause();
-            web.destroy();
+            if (web.getParent() instanceof ViewGroup) {
+                ((ViewGroup) web.getParent()).removeView(web);
+            }
         });
         dialog.show();
         if (dialog.getWindow() != null) dialog.getWindow().setLayout(-1, -1);
-        web.loadUrl(appUrl);
+        if (!appUrl.equals(pcWebCurrentUrl) || web.getUrl() == null) {
+            pcWebCurrentUrl = appUrl;
+            web.loadUrl(appUrl);
+        }
     }
 
     private void openPcApps() {
@@ -660,9 +673,14 @@ public class MainActivity extends Activity {
         if ("clear".equals(cmd)) { output.setText(""); showPrompt(); return; }
         if ("help".equals(cmd)) { showHelp(); return; }
         if ("history".equals(cmd)) {
-            writeLine("$ history", BLUE, true);
-            for (int i = 0; i < history.size(); i++) writeLine((i + 1) + "  " + history.get(i), FG, false);
-            showPrompt(); return;
+            StringBuilder historyText = new StringBuilder("$ history\n");
+            for (int i = 0; i < history.size(); i++) {
+                historyText.append(i + 1).append("  ").append(history.get(i)).append('\n');
+            }
+            output.append(historyText);
+            trimOutput();
+            showPrompt();
+            return;
         }
         if ("exit".equals(cmd)) {
             stopShell();
@@ -965,7 +983,7 @@ public class MainActivity extends Activity {
 
     private void trimOutput() {
         // Keep the most recent terminal output so long sessions do not grow without bound.
-        int maxChars = 40000;
+        int maxChars = 18000;
         if (output.length() > maxChars) {
             String recent = output.getText().subSequence(output.length() - maxChars, output.length()).toString();
             output.setText("[... các dòng cũ đã được lược bớt ...]\\n" + recent);
@@ -993,6 +1011,16 @@ public class MainActivity extends Activity {
 
     @Override protected void onDestroy() {
         stopShell();
+        if (pcWebView != null) {
+            try {
+                if (pcWebView.getParent() instanceof ViewGroup) {
+                    ((ViewGroup) pcWebView.getParent()).removeView(pcWebView);
+                }
+                pcWebView.stopLoading();
+                pcWebView.destroy();
+            } catch (Exception ignored) {}
+            pcWebView = null;
+        }
         super.onDestroy();
     }
 
