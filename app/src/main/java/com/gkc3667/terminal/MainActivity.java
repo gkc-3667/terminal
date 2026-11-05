@@ -69,6 +69,9 @@ public class MainActivity extends Activity {
     private final ArrayList<String> history = new ArrayList<>();
     private int historyIndex = 0;
     private volatile boolean busy = false;
+    // Keep one Chromium view alive during this app session for faster app switching.
+    private WebView pcWebView;
+    private String pcWebCurrentUrl = "";
     private String currentPath = "";
 
     @Override public void onCreate(Bundle state) {
