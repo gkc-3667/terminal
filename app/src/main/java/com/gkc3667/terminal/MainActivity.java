@@ -220,29 +220,16 @@ public class MainActivity extends Activity {
         LinearLayout tabs = new LinearLayout(this);
         tabs.setOrientation(LinearLayout.HORIZONTAL);
         tabs.setPadding(0, dp(9), 0, dp(3));
-        Button localTab = smallButton("●  LOCAL TERMINAL");
-        localTab.setTextColor(GREEN);
-        localTab.setOnClickListener(v -> {
-            if (sshConnected) {
-                new AlertDialog.Builder(this).setTitle("Đang kết nối VPS")
-                    .setMessage("Bạn đang ở phiên SSH. Ngắt kết nối để quay về terminal trên thiết bị?")
-                    .setNegativeButton("Ở lại", null)
-                    .setPositiveButton("Ngắt VPS", (d,w) -> disconnectSsh()).show();
-            } else statusLabel.setText("  LOCAL SHELL  •  /system/bin/sh");
-        });
-        tabs.addView(localTab, new LinearLayout.LayoutParams(0, dp(38), 1));
-        Button sshTab = smallButton("⇄  SSH / VPS");
-        sshTab.setTextColor(BLUE);
-        sshTab.setOnClickListener(v -> showSshDialog());
-        LinearLayout.LayoutParams sshTabLp = new LinearLayout.LayoutParams(0, dp(38), 1);
-        sshTabLp.leftMargin = dp(7);
-        tabs.addView(sshTab, sshTabLp);
-        Button discordTab = smallButton("▦  PC APP");
-        discordTab.setTextColor(Color.rgb(190, 165, 255));
-        LinearLayout.LayoutParams discordTabLp = new LinearLayout.LayoutParams(0, dp(38), 1);
-        discordTabLp.leftMargin = dp(7);
-        tabs.addView(discordTab, discordTabLp);
-        discordTab.setOnClickListener(v -> openDiscordPc());
+        Button homeTab = smallButton("⌂  TRANG CHỦ");
+        homeTab.setTextColor(Color.rgb(190, 165, 255));
+        homeTab.setOnClickListener(v -> showHomeDashboard());
+        tabs.addView(homeTab, new LinearLayout.LayoutParams(0, dp(40), 1));
+        Button pcAppsTab = smallButton("▦  PC APP  •  THƯ VIỆN");
+        pcAppsTab.setTextColor(Color.rgb(28, 205, 255));
+        LinearLayout.LayoutParams pcAppsLp = new LinearLayout.LayoutParams(0, dp(40), 1);
+        pcAppsLp.leftMargin = dp(8);
+        tabs.addView(pcAppsTab, pcAppsLp);
+        pcAppsTab.setOnClickListener(v -> showPcAppLibrary());
         content.addView(tabs);
 
         LinearLayout info = new LinearLayout(this);
@@ -405,10 +392,9 @@ public class MainActivity extends Activity {
             logo.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
             side.addView(logo, new LinearLayout.LayoutParams(-1, dp(82)));
             addHomeNav(side, "⌂  Trang Chủ", () -> showHomeDashboard());
+            addHomeNav(side, "▦  PC APP", () -> showPcAppLibrary());
             addHomeNav(side, "›_  Terminal", () -> setContentView(terminalRoot));
-            addHomeNav(side, "▣  Discord PC", () -> { setContentView(terminalRoot); openDiscordPc(); });
             addHomeNav(side, "⇄  SSH / VPS", () -> { setContentView(terminalRoot); showSshDialog(); });
-            addHomeNav(side, "▦  Thư Viện", () -> { setContentView(terminalRoot); showPcAppLibrary(); });
             addHomeNav(side, "⚙  Cài Đặt", () -> showAppearanceDialog());
             View spacer = new View(this);
             side.addView(spacer, new LinearLayout.LayoutParams(1, 0, 1));
@@ -478,10 +464,9 @@ public class MainActivity extends Activity {
         main.addView(quickTitle);
         LinearLayout cards = new LinearLayout(this);
         cards.setOrientation(wide ? LinearLayout.HORIZONTAL : LinearLayout.VERTICAL);
-        addHomeCard(cards, "›_", "Terminal", "Chạy lệnh trực tiếp", purple, Color.rgb(55, 12, 112), () -> setContentView(terminalRoot));
-        addHomeCard(cards, "▣", "Discord PC", "Giao diện máy tính • chat & server", cyan, Color.rgb(8, 45, 101), () -> { setContentView(terminalRoot); openDiscordPc(); });
+        addHomeCard(cards, "▦", "PC APP", "Discord, YouTube, game và ứng dụng của bạn", cyan, Color.rgb(8, 45, 101), () -> showPcAppLibrary());
+        addHomeCard(cards, "›_", "Terminal", "Chạy lệnh Android / Python", purple, Color.rgb(55, 12, 112), () -> setContentView(terminalRoot));
         addHomeCard(cards, "⇄", "SSH / VPS", "Kết nối máy chủ từ xa", mint, Color.rgb(5, 67, 69), () -> { setContentView(terminalRoot); showSshDialog(); });
-        addHomeCard(cards, "▤", "Thư Viện", "Kho ứng dụng của bạn", pink, Color.rgb(85, 14, 82), () -> { setContentView(terminalRoot); showPcAppLibrary(); });
         LinearLayout.LayoutParams cardsLp = new LinearLayout.LayoutParams(-1, -2);
         cardsLp.bottomMargin = dp(9); main.addView(cards, cardsLp);
 
@@ -854,23 +839,27 @@ public class MainActivity extends Activity {
         LinearLayout page = new LinearLayout(this);
         page.setOrientation(LinearLayout.VERTICAL);
         page.setPadding(dp(14), dp(12), dp(14), dp(12));
-        page.setBackgroundColor(BG);
+        page.setBackground(new android.graphics.drawable.GradientDrawable(
+                android.graphics.drawable.GradientDrawable.Orientation.TL_BR,
+                new int[]{Color.rgb(9, 7, 28), Color.rgb(22, 10, 51), Color.rgb(8, 13, 31)}));
 
         LinearLayout header = new LinearLayout(this);
         header.setGravity(Gravity.CENTER_VERTICAL);
         TextView heading = new TextView(this);
-        heading.setText("PC APP  •  THƯ VIỆN");
-        heading.setTextColor(GREEN);
-        heading.setTextSize(17);
-        heading.setTypeface(Typeface.MONOSPACE, Typeface.BOLD);
+        heading.setText("✦  PC APP");
+        heading.setTextColor(Color.rgb(190, 145, 255));
+        heading.setTextSize(21);
+        heading.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
         header.addView(heading, new LinearLayout.LayoutParams(0, dp(44), 1));
-        Button add = smallButton("+ THÊM ỨNG DỤNG");
+        Button add = smallButton("+  THÊM ỨNG DỤNG");
+        add.setTextColor(Color.WHITE);
+        add.setBackground(round(Color.rgb(115, 55, 210), 12));
         add.setOnClickListener(v -> { dialog.dismiss(); showAddPcAppDialog(); });
         header.addView(add);
         page.addView(header);
 
         TextView hint = new TextView(this);
-        hint.setText("Ứng dụng đã thêm được lưu trên thiết bị. Nhấn tên để mở; nhấn ⋮ để đổi tên, đổi link hoặc xóa.");
+        hint.setText("Không gian ứng dụng của bạn • Chạm để mở • Nhấn ⋮ để sửa hoặc xóa");
         hint.setTextColor(MUTED);
         hint.setTextSize(11);
         hint.setPadding(0, dp(4), 0, dp(12));
@@ -897,13 +886,13 @@ public class MainActivity extends Activity {
             LinearLayout row = new LinearLayout(this);
             row.setGravity(Gravity.CENTER_VERTICAL);
             row.setPadding(dp(10), dp(7), dp(5), dp(7));
-            row.setBackground(round(PANEL, 10));
+            row.setBackground(neonPanel(Color.rgb(20, 16, 47), Color.rgb(83, 54, 145), 13));
             LinearLayout info = new LinearLayout(this);
             info.setOrientation(LinearLayout.VERTICAL);
             TextView n = new TextView(this);
             n.setText(appName);
             n.setTextColor(FG);
-            n.setTextSize(14);
+            n.setTextSize(15);
             n.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
             TextView u = new TextView(this);
             u.setText(appUrl);
