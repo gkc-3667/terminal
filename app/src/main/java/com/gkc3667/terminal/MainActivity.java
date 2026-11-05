@@ -352,7 +352,9 @@ public class MainActivity extends Activity {
         writeLine("exit      khởi động phiên shell mới", FG, false);
         writeLine("LƯU Ý", GREEN, true);
         writeLine("Đây là shell Android thật (/system/bin/sh), không phải Debian.", MUTED, false);
-        writeLine("Python 3.11 được tích hợp: python --version, python file.py, python -c \"print(123)\"", MUTED, false);\n        writeLine("discord.py được đóng gói sẵn: pip list / pip show discord.py", MUTED, false);\n        writeLine("pip cài thêm gói tùy ý chưa hỗ trợ; apt và sudo không có.", MUTED, false);
+        writeLine("Python 3.11 được tích hợp: python --version, python file.py, python -c \"print(123)\"", MUTED, false);
+        writeLine("discord.py được đóng gói sẵn: pip list / pip show discord.py", MUTED, false);
+        writeLine("pip cài thêm gói tùy ý chưa hỗ trợ; apt và sudo không có.", MUTED, false);
         showPrompt();
     }
 
