@@ -608,8 +608,8 @@ public class MainActivity extends Activity {
         // Keep the most recent terminal output so long sessions do not grow without bound.
         int maxChars = 120000;
         if (output.length() > maxChars) {
-            output.getEditableText().delete(0, output.length() - maxChars);
-            output.getEditableText().insert(0, "[... các dòng cũ đã được lược bớt ...]\\n");
+            String recent = output.getText().subSequence(output.length() - maxChars, output.length()).toString();
+            output.setText("[... các dòng cũ đã được lược bớt ...]\\n" + recent);
         }
     }
 
