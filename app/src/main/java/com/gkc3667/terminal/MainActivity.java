@@ -73,6 +73,7 @@ public class MainActivity extends Activity {
     // Keep one Chromium view alive during this app session for faster app switching.
     private WebView pcWebView;
     private String pcWebCurrentUrl = "";
+    private Dialog pcLibraryDialog;
     private String currentPath = "";
     private boolean discordTheme = false;
     private int terminalFontSize = 15;
@@ -511,7 +512,7 @@ public class MainActivity extends Activity {
             title.setTextSize(12);
             row.addView(title, new LinearLayout.LayoutParams(0, -2, 1));
             Button add = smallButton("THÊM");
-            add.setOnClickListener(v -> addPcApp(app[0], app[1]));
+            add.setOnClickListener(v -> { picker.dismiss(); addPcApp(app[0], app[1]); });
             row.addView(add);
             list.addView(row);
             View line = new View(this);
@@ -519,12 +520,13 @@ public class MainActivity extends Activity {
             list.addView(line, new LinearLayout.LayoutParams(-1, dp(1)));
         }
         Button custom = smallButton("+  THÊM ỨNG DỤNG BẰNG LINK");
-        custom.setOnClickListener(v -> showCustomPcAppDialog());
+        custom.setOnClickListener(v -> { picker.dismiss(); showCustomPcAppDialog(); });
         LinearLayout.LayoutParams customLp = new LinearLayout.LayoutParams(-1, dp(44));
         customLp.topMargin = dp(10);
         list.addView(custom, customLp);
-        new AlertDialog.Builder(this).setTitle("Chọn ứng dụng hoặc game")
-            .setView(sc).setNegativeButton("ĐÓNG", null).show();
+        AlertDialog picker = new AlertDialog.Builder(this).setTitle("Chọn ứng dụng hoặc game")
+            .setView(sc).setNegativeButton("ĐÓNG", null).create();
+        picker.show();
     }
 
     private void showCustomPcAppDialog() {
@@ -548,7 +550,9 @@ public class MainActivity extends Activity {
     }
 
     private void showPcAppLibrary() {
+        if (pcLibraryDialog != null && pcLibraryDialog.isShowing()) pcLibraryDialog.dismiss();
         Dialog dialog = new Dialog(this);
+        pcLibraryDialog = dialog;
         LinearLayout page = new LinearLayout(this);
         page.setOrientation(LinearLayout.VERTICAL);
         page.setPadding(dp(14), dp(12), dp(14), dp(12));
