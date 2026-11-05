@@ -89,7 +89,7 @@ public class MainActivity extends Activity {
         loadAppearance();
         buildUi();
         startShell();
-        writeLine("TERMINAL PRO  •  ANDROID SHELL", GREEN, true);
+        writeLine("GKC APP  •  ANDROID SHELL", GREEN, true);
         writeLine("Phiên shell thật đang chạy trong môi trường Android.", MUTED, false);
         writeLine("Android ABI: " + android.text.TextUtils.join(", ", Build.SUPPORTED_ABIS), BLUE, false);
         writeLine("Android API: " + Build.VERSION.SDK_INT, MUTED, false);
@@ -117,7 +117,7 @@ public class MainActivity extends Activity {
             sidebar.setPadding(dp(12), dp(16), dp(12), dp(12));
             sidebar.setBackground(round(PANEL, 16));
             TextView sideBrand = new TextView(this);
-            sideBrand.setText("TP");
+            sideBrand.setText("GK");
             sideBrand.setTextColor(GREEN);
             sideBrand.setTextSize(25);
             sideBrand.setTypeface(Typeface.MONOSPACE, Typeface.BOLD);
@@ -180,7 +180,7 @@ public class MainActivity extends Activity {
         LinearLayout brand = new LinearLayout(this);
         brand.setOrientation(LinearLayout.VERTICAL);
         TextView title = new TextView(this);
-        title.setText("TERMINAL PRO");
+        title.setText("GKC APP");
         title.setTextColor(GREEN);
         title.setTextSize(16);
         title.setTypeface(Typeface.MONOSPACE, Typeface.BOLD);
@@ -373,7 +373,7 @@ public class MainActivity extends Activity {
         brandBox.setOrientation(LinearLayout.VERTICAL);
         brandBox.setPadding(dp(10), 0, 0, 0);
         TextView brand = new TextView(this);
-        brand.setText("Terminal Pro");
+        brand.setText("GKC APP");
         brand.setTextColor(Color.WHITE); brand.setTextSize(19);
         brand.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
         TextView subBrand = new TextView(this);
@@ -400,7 +400,7 @@ public class MainActivity extends Activity {
             side.setPadding(dp(9), dp(13), dp(9), dp(12));
             side.setBackground(neonPanel(Color.rgb(17, 12, 42), Color.rgb(91, 42, 190), 18));
             TextView logo = new TextView(this);
-            logo.setText("👑\nTERMINAL PRO");
+            logo.setText("👑\nGKC APP");
             logo.setTextColor(Color.WHITE); logo.setTextSize(17); logo.setGravity(Gravity.CENTER);
             logo.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
             side.addView(logo, new LinearLayout.LayoutParams(-1, dp(82)));
@@ -441,7 +441,7 @@ public class MainActivity extends Activity {
         eyebrow.setTextColor(Color.rgb(213, 171, 255)); eyebrow.setTextSize(9);
         eyebrow.setTypeface(Typeface.MONOSPACE, Typeface.BOLD);
         TextView heroTitle = new TextView(this);
-        heroTitle.setText("Xin chào!\nTerminal Pro");
+        heroTitle.setText("Xin chào!\nGKC APP");
         heroTitle.setTextColor(Color.WHITE); heroTitle.setTextSize(wide ? 25 : 20);
         heroTitle.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
         TextView heroDesc = new TextView(this);
@@ -520,7 +520,7 @@ public class MainActivity extends Activity {
         main.addView(lower);
 
         TextView footer = new TextView(this);
-        footer.setText("✦  TERMINAL PRO  •  ĐỈNH CAO CÔNG NGHỆ TRONG TẦM TAY BẠN  ✦");
+        footer.setText("✦  GKC APP  •  ĐỈNH CAO CÔNG NGHỆ TRONG TẦM TAY BẠN  ✦");
         footer.setTextColor(Color.rgb(204, 153, 255)); footer.setTextSize(9);
         footer.setGravity(Gravity.CENTER);
         footer.setPadding(dp(4), dp(12), dp(4), dp(8));
@@ -645,7 +645,7 @@ public class MainActivity extends Activity {
         form.addView(themeLabel);
         Spinner theme = new Spinner(this);
         theme.setAdapter(new ArrayAdapter<String>(this, android.R.layout.simple_spinner_dropdown_item,
-                new String[]{"Terminal Pro (xanh đen)", "Discord (tím than)"}));
+                new String[]{"GKC APP (xanh đen)", "Discord (tím than)"}));
         theme.setSelection(discordTheme ? 1 : 0);
         form.addView(theme, new LinearLayout.LayoutParams(-1, dp(48)));
 
@@ -679,7 +679,7 @@ public class MainActivity extends Activity {
         form.addView(size);
 
         TextView preview = new TextView(this);
-        preview.setText("Aa Bb 123  •  Terminal Pro");
+        preview.setText("Aa Bb 123  •  GKC APP");
         preview.setTextColor(FG);
         preview.setTextSize(terminalFontSize);
         preview.setPadding(dp(10), dp(12), dp(10), dp(12));
