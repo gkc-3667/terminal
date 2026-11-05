@@ -15,6 +15,8 @@ import android.graphics.drawable.GradientDrawable;
 import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.content.Context;
+import android.content.Intent;
+import android.net.Uri;
 import android.view.Gravity;
 import android.view.KeyEvent;
 import android.view.View;
@@ -289,7 +291,9 @@ public class MainActivity extends Activity {
         input.setTypeface(Typeface.MONOSPACE);
         input.setPadding(dp(5), 0, dp(5), 0);
         input.setBackgroundColor(Color.TRANSPARENT);
-        input.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS);
+        // Cho phép bàn phím Android ghép dấu tiếng Việt (IME composing).
+        input.setInputType(InputType.TYPE_CLASS_TEXT);
+        input.setImeOptions(EditorInfo.IME_ACTION_SEND | EditorInfo.IME_FLAG_NO_EXTRACT_UI);
         input.setImeOptions(EditorInfo.IME_ACTION_SEND);
         input.setOnEditorActionListener((v, action, event) -> {
             if (action == EditorInfo.IME_ACTION_SEND ||
@@ -529,6 +533,10 @@ public class MainActivity extends Activity {
         LinearLayout.LayoutParams reloadLp = new LinearLayout.LayoutParams(-2, dp(38));
         reloadLp.leftMargin = dp(5);
         toolbar.addView(reload, reloadLp);
+        Button external = smallButton("MỞ CHROME ↗");
+        LinearLayout.LayoutParams externalLp = new LinearLayout.LayoutParams(-2, dp(38));
+        externalLp.leftMargin = dp(5);
+        toolbar.addView(external, externalLp);
         Button close = smallButton("✕");
         LinearLayout.LayoutParams closeLp = new LinearLayout.LayoutParams(-2, dp(38));
         closeLp.leftMargin = dp(5);
@@ -536,6 +544,10 @@ public class MainActivity extends Activity {
         page.addView(toolbar);
 
         WebView web = new WebView(this);
+        web.setFocusable(true);
+        web.setFocusableInTouchMode(true);
+        web.setLayerType(View.LAYER_TYPE_HARDWARE, null);
+        web.setOverScrollMode(View.OVER_SCROLL_NEVER);
         WebSettings settings = web.getSettings();
         settings.setJavaScriptEnabled(true);
         settings.setDomStorageEnabled(true);
@@ -546,9 +558,16 @@ public class MainActivity extends Activity {
         settings.setBuiltInZoomControls(true);
         settings.setDisplayZoomControls(false);
         settings.setMediaPlaybackRequiresUserGesture(false);
-        String ua = settings.getUserAgentString()
-            .replace("Android", "X11; Linux x86_64").replace("Mobile ", "");
-        settings.setUserAgentString(ua);
+        settings.setLoadsImagesAutomatically(true);
+        settings.setCacheMode(WebSettings.LOAD_DEFAULT);
+        settings.setJavaScriptCanOpenWindowsAutomatically(true);
+        // User-Agent desktop hợp lệ; giữ nguyên phiên bản Chromium đi kèm WebView.
+        String currentUa = settings.getUserAgentString();
+        java.util.regex.Matcher chromeVersion = java.util.regex.Pattern
+            .compile("Chrome/([0-9.]+)").matcher(currentUa);
+        String version = chromeVersion.find() ? chromeVersion.group(1) : "120.0.0.0";
+        settings.setUserAgentString("Mozilla/5.0 (X11; CrOS x86_64 16093.0.0) " +
+            "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/" + version + " Safari/537.36");
         android.webkit.CookieManager cookies = android.webkit.CookieManager.getInstance();
         cookies.setAcceptCookie(true);
         if (Build.VERSION.SDK_INT >= 21) cookies.setAcceptThirdPartyCookies(web, true);
@@ -557,6 +576,13 @@ public class MainActivity extends Activity {
         page.addView(web, new LinearLayout.LayoutParams(-1, 0, 1));
         back.setOnClickListener(v -> { if (web.canGoBack()) web.goBack(); });
         reload.setOnClickListener(v -> web.reload());
+        external.setOnClickListener(v -> {
+            try { startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(appUrl))); }
+            catch (Exception e) {
+                new AlertDialog.Builder(this).setMessage("Không tìm thấy trình duyệt để mở liên kết.")
+                    .setPositiveButton("OK", null).show();
+            }
+        });
         close.setOnClickListener(v -> dialog.dismiss());
         dialog.setContentView(page);
         dialog.setOnDismissListener(d -> {
@@ -749,7 +775,7 @@ public class MainActivity extends Activity {
         e.setHint(hint); e.setTextSize(14); e.setPadding(dp(10), dp(8), dp(10), dp(8));
         e.setBackground(round(Color.rgb(35, 47, 60), 8));
         if (secret) e.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_PASSWORD);
-        else e.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS);
+        else e.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_MULTI_LINE);
         return e;
     }
 
@@ -939,7 +965,7 @@ public class MainActivity extends Activity {
 
     private void trimOutput() {
         // Keep the most recent terminal output so long sessions do not grow without bound.
-        int maxChars = 120000;
+        int maxChars = 40000;
         if (output.length() > maxChars) {
             String recent = output.getText().subSequence(output.length() - maxChars, output.length()).toString();
             output.setText("[... các dòng cũ đã được lược bớt ...]\\n" + recent);
