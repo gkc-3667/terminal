@@ -270,7 +270,6 @@ public class MainActivity extends Activity {
         output.setTypeface(resolveTerminalTypeface());
         output.setTextIsSelectable(true);
         output.setFontFeatureSettings("kern");
-        output.setTextIsSelectable(true);
         output.setPadding(dp(12), dp(12), dp(12), dp(16));
         output.setLineSpacing(dp(2), 1.0f);
         scroll.addView(output, new ScrollView.LayoutParams(-1, -2));
@@ -1141,7 +1140,7 @@ public class MainActivity extends Activity {
                         if (parts.length >= 3) newPath = parts[2];
                         break;
                     }
-                    result.append(line).append("\n");
+                    if (result.length() < 12000) result.append(line).append("\n");
                 }
                 final String text = result.toString();
                 final String path = newPath;
