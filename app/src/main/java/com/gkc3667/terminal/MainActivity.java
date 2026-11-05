@@ -157,7 +157,7 @@ public class MainActivity extends Activity {
             Button navSsh = smallButton("⇄  SSH / VPS");
             navSsh.setGravity(Gravity.CENTER_VERTICAL);
             navSsh.setTextColor(BLUE);
-            navSsh.setOnClickListener(v -> showSshDialog());
+            navSsh.setOnClickListener(v -> showSshPage());
             LinearLayout.LayoutParams navSshLp = new LinearLayout.LayoutParams(-1, dp(44));
             navSshLp.topMargin = dp(5); sidebar.addView(navSsh, navSshLp);
             View spacer = new View(this);
@@ -196,7 +196,7 @@ public class MainActivity extends Activity {
         copy.setOnClickListener(v -> copyOutput());
         header.addView(copy);
         Button connect = smallButton("VPS / SSH");
-        connect.setOnClickListener(v -> showSshDialog());
+        connect.setOnClickListener(v -> showSshPage());
         LinearLayout.LayoutParams connectLp = new LinearLayout.LayoutParams(-2, dp(36));
         connectLp.leftMargin = dp(6);
         header.addView(connect, connectLp);
@@ -394,7 +394,7 @@ public class MainActivity extends Activity {
             addHomeNav(side, "⌂  Trang Chủ", () -> showHomeDashboard());
             addHomeNav(side, "▦  PC APP", () -> showPcAppLibrary());
             addHomeNav(side, "›_  Terminal", () -> setContentView(terminalRoot));
-            addHomeNav(side, "⇄  SSH / VPS", () -> { setContentView(terminalRoot); showSshDialog(); });
+            addHomeNav(side, "⇄  SSH / VPS", () -> showSshPage());
             addHomeNav(side, "⚙  Cài Đặt", () -> showAppearanceDialog());
             View spacer = new View(this);
             side.addView(spacer, new LinearLayout.LayoutParams(1, 0, 1));
@@ -466,7 +466,7 @@ public class MainActivity extends Activity {
         cards.setOrientation(wide ? LinearLayout.HORIZONTAL : LinearLayout.VERTICAL);
         addHomeCard(cards, "▦", "PC APP", "Discord, YouTube, game và ứng dụng của bạn", cyan, Color.rgb(8, 45, 101), () -> showPcAppLibrary());
         addHomeCard(cards, "›_", "Terminal", "Chạy lệnh Android / Python", purple, Color.rgb(55, 12, 112), () -> setContentView(terminalRoot));
-        addHomeCard(cards, "⇄", "SSH / VPS", "Kết nối máy chủ từ xa", mint, Color.rgb(5, 67, 69), () -> { setContentView(terminalRoot); showSshDialog(); });
+        addHomeCard(cards, "⇄", "SSH / VPS", "Trang kết nối máy chủ riêng", mint, Color.rgb(5, 67, 69), () -> showSshPage());
         LinearLayout.LayoutParams cardsLp = new LinearLayout.LayoutParams(-1, -2);
         cardsLp.bottomMargin = dp(9); main.addView(cards, cardsLp);
 
@@ -729,6 +729,7 @@ public class MainActivity extends Activity {
         }
     }
 
+
     private void showAddPcAppDialog() {
         final String[][] catalog = {
             {"Discord", "https://discord.com/app"},
@@ -740,38 +741,75 @@ public class MainActivity extends Activity {
             {"Minecraft", "https://www.minecraft.net"},
             {"Free Fire", "https://ff.garena.com/"}
         };
+        LinearLayout page = new LinearLayout(this);
+        page.setOrientation(LinearLayout.VERTICAL);
+        page.setPadding(dp(14), dp(12), dp(14), dp(10));
+        page.setBackground(new android.graphics.drawable.GradientDrawable(
+            android.graphics.drawable.GradientDrawable.Orientation.TL_BR,
+            new int[]{Color.rgb(8, 6, 27), Color.rgb(24, 10, 53), Color.rgb(7, 13, 32)}));
+        LinearLayout header = new LinearLayout(this);
+        header.setGravity(Gravity.CENTER_VERTICAL);
+        Button back = smallButton("‹  PC APP");
+        back.setTextColor(Color.WHITE);
+        back.setOnClickListener(v -> showPcAppLibrary());
+        header.addView(back);
+        TextView heading = new TextView(this);
+        heading.setText("  THÊM ỨNG DỤNG");
+        heading.setTextColor(Color.WHITE); heading.setTextSize(19);
+        heading.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
+        header.addView(heading, new LinearLayout.LayoutParams(0, dp(44), 1));
+        page.addView(header);
+
+        TextView caption = new TextView(this);
+        caption.setText("CHỌN ỨNG DỤNG CÓ SẴN");
+        caption.setTextColor(Color.rgb(190, 155, 255)); caption.setTextSize(10);
+        caption.setTypeface(Typeface.MONOSPACE, Typeface.BOLD);
+        caption.setPadding(dp(4), dp(12), dp(4), dp(8));
+        page.addView(caption);
+
+        ScrollView sc = new ScrollView(this);
         LinearLayout list = new LinearLayout(this);
         list.setOrientation(LinearLayout.VERTICAL);
-        list.setPadding(dp(14), dp(8), dp(14), dp(8));
-        ScrollView sc = new ScrollView(this);
-        sc.addView(list);
-        final AlertDialog picker = new AlertDialog.Builder(this).setTitle("Chọn ứng dụng hoặc game")
-            .setView(sc).setNegativeButton("ĐÓNG", null).create();
         for (String[] app : catalog) {
             LinearLayout row = new LinearLayout(this);
             row.setGravity(Gravity.CENTER_VERTICAL);
-            row.setPadding(dp(8), dp(5), dp(4), dp(5));
-            TextView title = new TextView(this);
-            title.setText(app[0] + "\n" + app[1]);
-            title.setTextColor(FG);
-            title.setTextSize(12);
-            row.addView(title, new LinearLayout.LayoutParams(0, -2, 1));
+            row.setPadding(dp(12), dp(9), dp(10), dp(9));
+            row.setBackground(neonPanel(Color.rgb(20, 15, 46), Color.rgb(83, 54, 145), 13));
+            LinearLayout.LayoutParams rowLp = new LinearLayout.LayoutParams(-1, -2);
+            rowLp.bottomMargin = dp(7);
+            list.addView(row, rowLp);
+            TextView icon = new TextView(this);
+            icon.setText(app[0].equals("Discord") ? "💬" : app[0].equals("YouTube") ? "▶" :
+                app[0].equals("Free Fire") ? "🔥" : app[0].equals("Roblox") ? "◇" : "🌐");
+            icon.setTextSize(25); icon.setGravity(Gravity.CENTER);
+            row.addView(icon, new LinearLayout.LayoutParams(dp(48), dp(46)));
+            LinearLayout info = new LinearLayout(this);
+            info.setOrientation(LinearLayout.VERTICAL);
+            info.setPadding(dp(10), 0, 0, 0);
+            TextView name = new TextView(this);
+            name.setText(app[0]); name.setTextColor(Color.WHITE); name.setTextSize(14);
+            name.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
+            TextView url = new TextView(this);
+            url.setText(app[1]); url.setTextColor(MUTED); url.setTextSize(9);
+            info.addView(name); info.addView(url);
+            row.addView(info, new LinearLayout.LayoutParams(0, -2, 1));
             Button add = smallButton("THÊM");
-            add.setOnClickListener(v -> { picker.dismiss(); addPcApp(app[0], app[1]); });
+            add.setTextColor(Color.WHITE);
+            add.setBackground(round(Color.rgb(105, 54, 201), 10));
+            add.setOnClickListener(v -> addPcApp(app[0], app[1]));
             row.addView(add);
-            list.addView(row);
-            View line = new View(this);
-            line.setBackgroundColor(Color.rgb(43, 56, 70));
-            list.addView(line, new LinearLayout.LayoutParams(-1, dp(1)));
         }
-        Button custom = smallButton("+  THÊM ỨNG DỤNG BẰNG LINK");
-        custom.setOnClickListener(v -> { picker.dismiss(); showCustomPcAppDialog(); });
+        sc.addView(list);
+        page.addView(sc, new LinearLayout.LayoutParams(-1, 0, 1));
+        Button custom = smallButton("+  THÊM BẰNG LINK RIÊNG");
+        custom.setTextColor(Color.WHITE);
+        custom.setBackground(round(Color.rgb(112, 58, 220), 12));
         LinearLayout.LayoutParams customLp = new LinearLayout.LayoutParams(-1, dp(44));
-        customLp.topMargin = dp(10);
-        list.addView(custom, customLp);
-        picker.show();
+        customLp.topMargin = dp(8);
+        page.addView(custom, customLp);
+        custom.setOnClickListener(v -> showCustomPcAppDialog());
+        setContentView(page);
     }
-
     private void showCustomPcAppDialog() {
         LinearLayout form = new LinearLayout(this);
         form.setOrientation(LinearLayout.VERTICAL);
@@ -832,80 +870,106 @@ public class MainActivity extends Activity {
             }).show();
     }
 
+
     private void showPcAppLibrary() {
-        if (pcLibraryDialog != null && pcLibraryDialog.isShowing()) pcLibraryDialog.dismiss();
-        Dialog dialog = new Dialog(this);
-        pcLibraryDialog = dialog;
+        int widthDp = (int)(getResources().getDisplayMetrics().widthPixels / getResources().getDisplayMetrics().density);
+        int columns = widthDp >= 1100 ? 4 : (widthDp >= 700 ? 3 : (widthDp >= 430 ? 2 : 1));
         LinearLayout page = new LinearLayout(this);
         page.setOrientation(LinearLayout.VERTICAL);
-        page.setPadding(dp(14), dp(12), dp(14), dp(12));
+        page.setPadding(dp(14), dp(12), dp(14), dp(10));
         page.setBackground(new android.graphics.drawable.GradientDrawable(
-                android.graphics.drawable.GradientDrawable.Orientation.TL_BR,
-                new int[]{Color.rgb(9, 7, 28), Color.rgb(22, 10, 51), Color.rgb(8, 13, 31)}));
+            android.graphics.drawable.GradientDrawable.Orientation.TL_BR,
+            new int[]{Color.rgb(8, 6, 27), Color.rgb(24, 10, 53), Color.rgb(7, 13, 32)}));
 
         LinearLayout header = new LinearLayout(this);
         header.setGravity(Gravity.CENTER_VERTICAL);
-        TextView heading = new TextView(this);
-        heading.setText("✦  PC APP");
-        heading.setTextColor(Color.rgb(190, 145, 255));
-        heading.setTextSize(21);
-        heading.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
-        header.addView(heading, new LinearLayout.LayoutParams(0, dp(44), 1));
-        Button add = smallButton("+  THÊM ỨNG DỤNG");
+        Button home = smallButton("‹  TRANG CHỦ");
+        home.setTextColor(Color.WHITE);
+        home.setBackground(round(Color.rgb(55, 35, 94), 11));
+        home.setOnClickListener(v -> showHomeDashboard());
+        header.addView(home);
+        LinearLayout titleBox = new LinearLayout(this);
+        titleBox.setOrientation(LinearLayout.VERTICAL);
+        titleBox.setPadding(dp(12), 0, 0, 0);
+        TextView title = new TextView(this);
+        title.setText("PC APP");
+        title.setTextColor(Color.WHITE); title.setTextSize(21);
+        title.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
+        TextView sub = new TextView(this);
+        sub.setText("THƯ VIỆN  •  ỨNG DỤNG CỦA BẠN");
+        sub.setTextColor(Color.rgb(190, 155, 255)); sub.setTextSize(9);
+        sub.setTypeface(Typeface.MONOSPACE, Typeface.BOLD);
+        titleBox.addView(title); titleBox.addView(sub);
+        header.addView(titleBox, new LinearLayout.LayoutParams(0, -2, 1));
+        Button add = smallButton("+  THÊM APP");
         add.setTextColor(Color.WHITE);
-        add.setBackground(round(Color.rgb(115, 55, 210), 12));
-        add.setOnClickListener(v -> { dialog.dismiss(); showAddPcAppDialog(); });
+        add.setTextSize(10);
+        add.setBackground(round(Color.rgb(112, 58, 220), 12));
+        add.setOnClickListener(v -> showAddPcAppDialog());
         header.addView(add);
         page.addView(header);
 
-        TextView hint = new TextView(this);
-        hint.setText("Không gian ứng dụng của bạn • Chạm để mở • Nhấn ⋮ để sửa hoặc xóa");
-        hint.setTextColor(MUTED);
-        hint.setTextSize(11);
-        hint.setPadding(0, dp(4), 0, dp(12));
-        page.addView(hint);
+        TextView intro = new TextView(this);
+        intro.setText("Chọn ứng dụng để mở trong không gian PC. Discord sẽ hiển thị giao diện web máy tính giống video của bạn.");
+        intro.setTextColor(Color.rgb(190, 184, 216));
+        intro.setTextSize(11);
+        intro.setPadding(dp(3), dp(12), dp(3), dp(10));
+        page.addView(intro);
 
-        ScrollView scrollList = new ScrollView(this);
-        LinearLayout list = new LinearLayout(this);
-        list.setOrientation(LinearLayout.VERTICAL);
+        ScrollView sc = new ScrollView(this);
+        sc.setFillViewport(false);
+        sc.setVerticalScrollBarEnabled(false);
+        LinearLayout content = new LinearLayout(this);
+        content.setOrientation(LinearLayout.VERTICAL);
         JSONArray apps = getPcApps();
         if (apps.length() == 0) {
             TextView empty = new TextView(this);
-            empty.setText("Chưa có ứng dụng nào.\nNhấn + THÊM ỨNG DỤNG để bắt đầu.");
-            empty.setTextColor(MUTED);
-            empty.setGravity(Gravity.CENTER);
-            empty.setPadding(dp(12), dp(35), dp(12), dp(35));
-            list.addView(empty);
+            empty.setText("Chưa có ứng dụng nào. Nhấn + THÊM APP để chọn ứng dụng hoặc tự dán link.");
+            empty.setTextColor(MUTED); empty.setTextSize(13); empty.setGravity(Gravity.CENTER);
+            empty.setPadding(dp(18), dp(42), dp(18), dp(42));
+            empty.setBackground(neonPanel(Color.rgb(22, 15, 48), Color.rgb(95, 55, 160), 16));
+            content.addView(empty);
         }
+        LinearLayout gridRow = null;
+        int inRow = 0;
         for (int i = 0; i < apps.length(); i++) {
             JSONObject item = apps.optJSONObject(i);
             if (item == null) continue;
             final String appName = item.optString("name", "Ứng dụng");
             final String appUrl = item.optString("url", "");
             final String appId = item.optString("id", "");
-            LinearLayout row = new LinearLayout(this);
-            row.setGravity(Gravity.CENTER_VERTICAL);
-            row.setPadding(dp(10), dp(7), dp(5), dp(7));
-            row.setBackground(neonPanel(Color.rgb(20, 16, 47), Color.rgb(83, 54, 145), 13));
-            LinearLayout info = new LinearLayout(this);
-            info.setOrientation(LinearLayout.VERTICAL);
-            TextView n = new TextView(this);
-            n.setText(appName);
-            n.setTextColor(FG);
-            n.setTextSize(15);
-            n.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
-            TextView u = new TextView(this);
-            u.setText(appUrl);
-            u.setTextColor(MUTED);
-            u.setTextSize(10);
-            info.addView(n);
-            info.addView(u);
-            info.setOnClickListener(v -> { dialog.dismiss(); openPcApp(appName, appUrl); });
-            row.addView(info, new LinearLayout.LayoutParams(0, -2, 1));
+            if (gridRow == null || inRow == columns) {
+                gridRow = new LinearLayout(this);
+                gridRow.setOrientation(LinearLayout.HORIZONTAL);
+                gridRow.setGravity(Gravity.TOP);
+                content.addView(gridRow);
+                inRow = 0;
+            }
+            LinearLayout card = new LinearLayout(this);
+            card.setOrientation(LinearLayout.VERTICAL);
+            card.setPadding(dp(12), dp(12), dp(12), dp(11));
+            card.setBackground(neonPanel(Color.rgb(19, 15, 45), Color.rgb(91, 58, 160), 16));
+            card.setElevation(dp(3));
+
+            LinearLayout cardTop = new LinearLayout(this);
+            cardTop.setGravity(Gravity.CENTER_VERTICAL);
+            TextView appIcon = new TextView(this);
+            String lower = appName.toLowerCase(java.util.Locale.ROOT);
+            String glyph = lower.contains("discord") ? "💬" : lower.contains("youtube") ? "▶" :
+                lower.contains("roblox") ? "◇" : lower.contains("geforce") ? "🎮" :
+                lower.contains("telegram") ? "✈" : lower.contains("spotify") ? "♫" :
+                lower.contains("minecraft") ? "⛏" : lower.contains("free fire") ? "🔥" : "🌐";
+            appIcon.setText(glyph); appIcon.setTextSize(27); appIcon.setGravity(Gravity.CENTER);
+            appIcon.setBackground(round(Color.rgb(62, 35, 119), 13));
+            cardTop.addView(appIcon, new LinearLayout.LayoutParams(dp(48), dp(46)));
+            View topSpacer = new View(this);
+            cardTop.addView(topSpacer, new LinearLayout.LayoutParams(0, 1, 1));
             Button menu = smallButton("⋮");
-            menu.setTextSize(18);
+            menu.setTextSize(17);
+            cardTop.addView(menu, new LinearLayout.LayoutParams(dp(38), dp(38)));
             menu.setOnClickListener(v -> new AlertDialog.Builder(this)
-                .setTitle(appName).setItems(new String[]{"Đổi tên / đổi link", "Xóa ứng dụng"}, (d, which) -> {
+                .setTitle(appName)
+                .setItems(new String[]{"Đổi tên / đổi link", "Xóa ứng dụng"}, (d, which) -> {
                     if (which == 0) {
                         showEditPcAppDialog(appId, appName, appUrl);
                     } else {
@@ -924,63 +988,94 @@ public class MainActivity extends Activity {
                             }).show();
                     }
                 }).show());
-            row.addView(menu);
-            LinearLayout.LayoutParams rowLp = new LinearLayout.LayoutParams(-1, -2);
-            rowLp.bottomMargin = dp(7);
-            list.addView(row, rowLp);
+
+            TextView name = new TextView(this);
+            name.setText(appName); name.setTextColor(Color.WHITE); name.setTextSize(15);
+            name.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
+            name.setPadding(0, dp(9), 0, dp(3));
+            TextView url = new TextView(this);
+            url.setText(appUrl); url.setTextColor(Color.rgb(160, 151, 190)); url.setTextSize(9);
+            url.setSingleLine(true); url.setEllipsize(android.text.TextUtils.TruncateAt.END);
+            Button launch = smallButton("MỞ ỨNG DỤNG  →");
+            launch.setTextColor(Color.WHITE);
+            launch.setBackground(round(Color.rgb(91, 48, 174), 10));
+            LinearLayout.LayoutParams launchLp = new LinearLayout.LayoutParams(-1, dp(38));
+            launchLp.topMargin = dp(10);
+            card.addView(cardTop); card.addView(name); card.addView(url); card.addView(launch, launchLp);
+            card.setOnClickListener(v -> openPcApp(appName, appUrl));
+            launch.setOnClickListener(v -> openPcApp(appName, appUrl));
+
+            LinearLayout.LayoutParams cardLp = new LinearLayout.LayoutParams(0, -2, 1);
+            cardLp.setMargins(dp(4), dp(4), dp(4), dp(8));
+            gridRow.addView(card, cardLp);
+            inRow++;
         }
-        scrollList.addView(list);
-        page.addView(scrollList, new LinearLayout.LayoutParams(-1, 0, 1));
-        Button done = smallButton("ĐÓNG");
-        done.setOnClickListener(v -> dialog.dismiss());
-        LinearLayout.LayoutParams doneLp = new LinearLayout.LayoutParams(-1, dp(42));
-        doneLp.topMargin = dp(8);
-        page.addView(done, doneLp);
-        dialog.setContentView(page);
-        dialog.show();
-        if (dialog.getWindow() != null) dialog.getWindow().setLayout(-1, -1);
+        if (gridRow != null && inRow < columns) {
+            for (int k = inRow; k < columns; k++) {
+                View filler = new View(this);
+                gridRow.addView(filler, new LinearLayout.LayoutParams(0, dp(1), 1));
+            }
+        }
+        sc.addView(content);
+        page.addView(sc, new LinearLayout.LayoutParams(-1, 0, 1));
+
+        LinearLayout nav = new LinearLayout(this);
+        nav.setGravity(Gravity.CENTER);
+        Button terminal = smallButton("›_  TERMINAL");
+        Button ssh = smallButton("⇄  SSH / VPS");
+        Button homeBottom = smallButton("⌂  TRANG CHỦ");
+        terminal.setOnClickListener(v -> setContentView(terminalRoot));
+        ssh.setOnClickListener(v -> showSshPage());
+        homeBottom.setOnClickListener(v -> showHomeDashboard());
+        for (Button b : new Button[]{terminal, ssh, homeBottom}) {
+            b.setTextColor(Color.WHITE);
+            b.setBackground(round(Color.rgb(42, 30, 74), 10));
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, dp(42), 1);
+            lp.setMargins(dp(4), dp(7), dp(4), 0);
+            nav.addView(b, lp);
+        }
+        page.addView(nav);
+        setContentView(page);
     }
 
     private void openPcApp(String appName, String appUrl) {
-        Dialog dialog = new Dialog(this);
         LinearLayout page = new LinearLayout(this);
         page.setOrientation(LinearLayout.VERTICAL);
-        page.setBackgroundColor(BG);
+        page.setBackgroundColor(Color.rgb(16, 17, 22));
+
         LinearLayout toolbar = new LinearLayout(this);
         toolbar.setGravity(Gravity.CENTER_VERTICAL);
         toolbar.setPadding(dp(8), dp(5), dp(8), dp(5));
-        toolbar.setBackgroundColor(PANEL);
+        toolbar.setBackgroundColor(Color.rgb(28, 25, 42));
+        Button library = smallButton("‹  PC APP");
+        library.setTextColor(Color.WHITE);
+        toolbar.addView(library);
         TextView label = new TextView(this);
-        label.setText(appName + "  •  PC MODE");
-        label.setTextColor(FG);
-        label.setTypeface(Typeface.MONOSPACE, Typeface.BOLD);
-        label.setTextSize(12);
+        label.setText(appName + "  •  DESKTOP");
+        label.setTextColor(Color.WHITE);
+        label.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
+        label.setTextSize(13);
+        label.setPadding(dp(10), 0, dp(5), 0);
         toolbar.addView(label, new LinearLayout.LayoutParams(0, dp(42), 1));
-        Button back = smallButton("‹");
-        toolbar.addView(back);
+        Button webBack = smallButton("←");
         Button reload = smallButton("↻");
-        LinearLayout.LayoutParams reloadLp = new LinearLayout.LayoutParams(-2, dp(38));
-        reloadLp.leftMargin = dp(5);
-        toolbar.addView(reload, reloadLp);
-        Button external = smallButton("MỞ CHROME ↗");
-        LinearLayout.LayoutParams externalLp = new LinearLayout.LayoutParams(-2, dp(38));
-        externalLp.leftMargin = dp(5);
-        toolbar.addView(external, externalLp);
-        Button close = smallButton("✕");
-        LinearLayout.LayoutParams closeLp = new LinearLayout.LayoutParams(-2, dp(38));
-        closeLp.leftMargin = dp(5);
-        toolbar.addView(close, closeLp);
+        Button external = smallButton("CHROME ↗");
+        for (Button b : new Button[]{webBack, reload, external}) {
+            LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(-2, dp(38));
+            p.leftMargin = dp(5);
+            toolbar.addView(b, p);
+        }
         page.addView(toolbar);
 
-        WebView existingWeb = pcWebView;
-        if (existingWeb == null) {
-            existingWeb = new WebView(this);
-            pcWebView = existingWeb;
-            existingWeb.setFocusable(true);
-            existingWeb.setFocusableInTouchMode(true);
-            existingWeb.setLayerType(View.LAYER_TYPE_HARDWARE, null);
-            existingWeb.setOverScrollMode(View.OVER_SCROLL_NEVER);
-            WebSettings settings = existingWeb.getSettings();
+        WebView web = pcWebView;
+        if (web == null) {
+            web = new WebView(this);
+            pcWebView = web;
+            web.setFocusable(true);
+            web.setFocusableInTouchMode(true);
+            web.setLayerType(View.LAYER_TYPE_HARDWARE, null);
+            web.setOverScrollMode(View.OVER_SCROLL_NEVER);
+            WebSettings settings = web.getSettings();
             settings.setJavaScriptEnabled(true);
             settings.setDomStorageEnabled(true);
             settings.setDatabaseEnabled(true);
@@ -1001,11 +1096,10 @@ public class MainActivity extends Activity {
                 "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/" + version + " Safari/537.36");
             android.webkit.CookieManager cookies = android.webkit.CookieManager.getInstance();
             cookies.setAcceptCookie(true);
-            if (Build.VERSION.SDK_INT >= 21) cookies.setAcceptThirdPartyCookies(existingWeb, true);
-            existingWeb.setWebViewClient(new WebViewClient() {
+            if (Build.VERSION.SDK_INT >= 21) cookies.setAcceptThirdPartyCookies(web, true);
+            web.setWebViewClient(new WebViewClient() {
                 @Override public void onPageFinished(WebView view, String url) {
                     super.onPageFinished(view, url);
-                    // Give Discord a desktop-sized layout viewport on narrow Android screens.
                     if (url != null && url.startsWith("https://discord.com/")) {
                         view.evaluateJavascript("(function(){var m=document.querySelector('meta[name=viewport]');" +
                             "if(!m){m=document.createElement('meta');m.name='viewport';document.head.appendChild(m);}" +
@@ -1027,16 +1121,24 @@ public class MainActivity extends Activity {
                     showWebErrorPage(view, "Chứng chỉ bảo mật của trang web không hợp lệ. Kết nối đã bị chặn.");
                 }
             });
-            existingWeb.setWebChromeClient(new WebChromeClient());
+            web.setWebChromeClient(new WebChromeClient());
         }
-        final WebView web = existingWeb;
         if (web.getParent() instanceof ViewGroup) {
             ((ViewGroup) web.getParent()).removeView(web);
         }
         web.onResume();
         page.addView(web, new LinearLayout.LayoutParams(-1, 0, 1));
-        back.setOnClickListener(v -> { if (web.canGoBack()) web.goBack(); });
-        reload.setOnClickListener(v -> web.reload());
+        final WebView activeWeb = web;
+        library.setOnClickListener(v -> {
+            activeWeb.onPause();
+            android.webkit.CookieManager.getInstance().flush();
+            if (activeWeb.getParent() instanceof ViewGroup) {
+                ((ViewGroup) activeWeb.getParent()).removeView(activeWeb);
+            }
+            showPcAppLibrary();
+        });
+        webBack.setOnClickListener(v -> { if (activeWeb.canGoBack()) activeWeb.goBack(); });
+        reload.setOnClickListener(v -> activeWeb.reload());
         external.setOnClickListener(v -> {
             try { startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(appUrl))); }
             catch (Exception e) {
@@ -1044,23 +1146,12 @@ public class MainActivity extends Activity {
                     .setPositiveButton("OK", null).show();
             }
         });
-        close.setOnClickListener(v -> dialog.dismiss());
-        dialog.setContentView(page);
-        dialog.setOnDismissListener(d -> {
-            android.webkit.CookieManager.getInstance().flush();
-            web.onPause();
-            if (web.getParent() instanceof ViewGroup) {
-                ((ViewGroup) web.getParent()).removeView(web);
-            }
-        });
-        dialog.show();
-        if (dialog.getWindow() != null) dialog.getWindow().setLayout(-1, -1);
-        if (!appUrl.equals(pcWebCurrentUrl) || web.getUrl() == null) {
+        setContentView(page);
+        if (!appUrl.equals(pcWebCurrentUrl) || activeWeb.getUrl() == null) {
             pcWebCurrentUrl = appUrl;
-            web.loadUrl(appUrl);
+            activeWeb.loadUrl(appUrl);
         }
     }
-
     private void showWebErrorPage(WebView web, String detail) {
         String safe = detail == null ? "Không thể kết nối tới trang web." :
             detail.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;");
@@ -1266,6 +1357,96 @@ public class MainActivity extends Activity {
         if (secret) e.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_PASSWORD);
         else e.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_MULTI_LINE);
         return e;
+    }
+
+
+    private void showSshPage() {
+        LinearLayout page = new LinearLayout(this);
+        page.setOrientation(LinearLayout.VERTICAL);
+        page.setPadding(dp(14), dp(12), dp(14), dp(12));
+        page.setBackground(new android.graphics.drawable.GradientDrawable(
+            android.graphics.drawable.GradientDrawable.Orientation.TL_BR,
+            new int[]{Color.rgb(8, 6, 27), Color.rgb(18, 13, 45), Color.rgb(7, 13, 32)}));
+        LinearLayout header = new LinearLayout(this);
+        header.setGravity(Gravity.CENTER_VERTICAL);
+        Button home = smallButton("‹  TRANG CHỦ");
+        home.setTextColor(Color.WHITE);
+        home.setOnClickListener(v -> showHomeDashboard());
+        header.addView(home);
+        LinearLayout titleBox = new LinearLayout(this);
+        titleBox.setOrientation(LinearLayout.VERTICAL);
+        titleBox.setPadding(dp(12), 0, 0, 0);
+        TextView title = new TextView(this);
+        title.setText("SSH / VPS"); title.setTextColor(Color.WHITE); title.setTextSize(21);
+        title.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
+        TextView subtitle = new TextView(this);
+        subtitle.setText("REMOTE SERVER CONNECTION");
+        subtitle.setTextColor(Color.rgb(157, 188, 255)); subtitle.setTextSize(9);
+        subtitle.setTypeface(Typeface.MONOSPACE, Typeface.BOLD);
+        titleBox.addView(title); titleBox.addView(subtitle);
+        header.addView(titleBox, new LinearLayout.LayoutParams(0, -2, 1));
+        page.addView(header);
+
+        ScrollView sc = new ScrollView(this);
+        LinearLayout body = new LinearLayout(this);
+        body.setOrientation(LinearLayout.VERTICAL);
+        body.setPadding(0, dp(15), 0, dp(10));
+        sc.addView(body);
+        LinearLayout hero = new LinearLayout(this);
+        hero.setOrientation(LinearLayout.VERTICAL);
+        hero.setPadding(dp(18), dp(18), dp(18), dp(18));
+        hero.setBackground(neonPanel(Color.rgb(13, 38, 75), Color.rgb(43, 142, 255), 18));
+        TextView icon = new TextView(this);
+        icon.setText("⇄"); icon.setTextSize(38); icon.setTextColor(Color.WHITE);
+        TextView heading = new TextView(this);
+        heading.setText("Kết nối máy chủ từ xa");
+        heading.setTextColor(Color.WHITE); heading.setTextSize(19);
+        heading.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
+        TextView help = new TextView(this);
+        help.setText("Kết nối VPS qua SSH bằng địa chỉ IP, cổng, tài khoản và mật khẩu hoặc SSH Key. Khi kết nối xong, lệnh sẽ chạy trên máy chủ.");
+        help.setTextColor(Color.rgb(207, 222, 245)); help.setTextSize(12);
+        help.setPadding(0, dp(7), 0, dp(13));
+        hero.addView(icon); hero.addView(heading); hero.addView(help);
+        Button connect = smallButton(sshConnected ? "ĐANG KẾT NỐI  •  MỞ TERMINAL VPS" : "＋  THIẾT LẬP KẾT NỐI SSH");
+        connect.setTextColor(Color.WHITE);
+        connect.setBackground(round(Color.rgb(36, 117, 218), 11));
+        hero.addView(connect, new LinearLayout.LayoutParams(-1, dp(46)));
+        connect.setOnClickListener(v -> {
+            if (sshConnected) setContentView(terminalRoot);
+            else showSshDialog();
+        });
+        body.addView(hero);
+
+        LinearLayout status = new LinearLayout(this);
+        status.setOrientation(LinearLayout.VERTICAL);
+        status.setPadding(dp(15), dp(14), dp(15), dp(14));
+        status.setBackground(neonPanel(Color.rgb(19, 17, 47), Color.rgb(107, 69, 180), 16));
+        LinearLayout.LayoutParams statusLp = new LinearLayout.LayoutParams(-1, -2);
+        statusLp.topMargin = dp(12);
+        body.addView(status, statusLp);
+        TextView statusTitle = homeSectionTitle("TRẠNG THÁI KẾT NỐI");
+        status.addView(statusTitle);
+        addInfoLine(status, "Trạng thái", sshConnected ? "Đã kết nối VPS" : "Chưa kết nối");
+        addInfoLine(status, "Cổng mặc định", "22");
+        addInfoLine(status, "Bảo mật", "SSH");
+        if (sshConnected) {
+            Button disconnect = smallButton("NGẮT KẾT NỐI");
+            disconnect.setTextColor(Color.WHITE);
+            disconnect.setBackground(round(Color.rgb(150, 48, 71), 10));
+            LinearLayout.LayoutParams disconnectLp = new LinearLayout.LayoutParams(-1, dp(42));
+            disconnectLp.topMargin = dp(9);
+            status.addView(disconnect, disconnectLp);
+            disconnect.setOnClickListener(v -> { disconnectSsh(); showSshPage(); });
+        }
+        Button terminal = smallButton("›_  MỞ TERMINAL");
+        terminal.setTextColor(Color.WHITE);
+        terminal.setBackground(round(Color.rgb(94, 49, 168), 10));
+        LinearLayout.LayoutParams terminalLp = new LinearLayout.LayoutParams(-1, dp(42));
+        terminalLp.topMargin = dp(12);
+        body.addView(terminal, terminalLp);
+        terminal.setOnClickListener(v -> setContentView(terminalRoot));
+        page.addView(sc, new LinearLayout.LayoutParams(-1, 0, 1));
+        setContentView(page);
     }
 
     private void showSshDialog() {
