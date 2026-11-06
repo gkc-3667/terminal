@@ -1022,7 +1022,7 @@ public class MainActivity extends Activity {
 
     private void openPlayStore() {
         try {
-            Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=com.android.chrome"));
+            Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse("market://home"));
             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
             startActivity(intent);
         } catch (Exception e) {
