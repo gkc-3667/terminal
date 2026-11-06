@@ -1041,7 +1041,7 @@ public class MainActivity extends Activity {
             }
             browserTabIndex = browserTabs.isEmpty() ? 0 : Math.max(0, Math.min(p.getInt("tab_index", 0), browserTabs.size() - 1));
             String savedPath = p.getString("terminal_path", currentPath);
-            if (savedPath != null && savedPath.startsWith("/")) currentPath = savedPath;
+            if (savedPath != null && savedPath.startsWith("/") && new java.io.File(savedPath).isDirectory()) currentPath = savedPath;
             String savedHistory = p.getString("terminal_history", "");
             if (savedHistory != null && !savedHistory.isEmpty()) {
                 JSONArray h = new JSONArray(savedHistory);
@@ -1220,7 +1220,9 @@ public class MainActivity extends Activity {
 
     private void runPythonCommand(String cmd) {
         history.add(cmd);
+        if (history.size() > 60) history.remove(0);
         historyIndex = history.size();
+        saveBrowserProgress();
         writeLine("$ " + cmd, BLUE, true);
         busy = true;
         statusLabel.setText("  PYTHON RUNNING...");
