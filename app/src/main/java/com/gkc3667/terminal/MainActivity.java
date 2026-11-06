@@ -1774,13 +1774,18 @@ public class MainActivity extends Activity {
                     writeLine("Các phím CTRL-C / CTRL-D / TAB / ESC / mũi tên có thể gửi tới VPS.", MUTED, false);
                     input.setHint("Nhập lệnh VPS rồi nhấn RUN/Enter...");
                 });
-                byte[] buffer = new byte[2048];
+                // Larger reads reduce UI dispatch pressure during high-volume terminal output.
+                byte[] buffer = new byte[8192];
                 while (sshReaderRunning && !channel.isClosed()) {
                     int n = in.read(buffer);
                     if (n < 0) break;
                     final String chunk = new String(buffer, 0, n, "UTF-8");
                     runOnUiThread(() -> {
-                        if (output != null) { output.append(chunk); trimOutput(); scroll.post(() -> scroll.fullScroll(View.FOCUS_DOWN)); }
+                        if (output != null && sshConnected) {
+                            output.append(chunk);
+                            trimOutput();
+                            scroll.post(() -> scroll.fullScroll(View.FOCUS_DOWN));
+                        }
                     });
                 }
                 if (sshReaderRunning) runOnUiThread(() -> {
@@ -1798,41 +1803,68 @@ public class MainActivity extends Activity {
         }, "terminal-ssh-connect").start();
     }
 
+    // All SSH socket writes run on a dedicated worker; Android UI thread must never do network I/O.
+    private final java.util.concurrent.ExecutorService sshIoExecutor =
+            java.util.concurrent.Executors.newSingleThreadExecutor();
+
     private void runSshCommand(String command) {
-        if (!sshConnected || sshRawOut == null) {
+        final java.io.OutputStream remote = sshRawOut;
+        if (!sshConnected || remote == null) {
             writeLine("SSH chưa kết nối.", Color.RED, false); return;
         }
-        try {
-            sshRawOut.write((command + "\r").getBytes("UTF-8"));
-            sshRawOut.flush();
-            statusLabel.setText("  VPS CONNECTED");
-        } catch (Exception e) {
-            writeLine("Không gửi được lệnh SSH: " + e.getMessage(), Color.RED, false);
-            disconnectSsh();
-        }
+        statusLabel.setText("  VPS CONNECTED  •  SENDING");
+        sshIoExecutor.execute(() -> {
+            try {
+                remote.write((command + "\r").getBytes("UTF-8"));
+                remote.flush();
+                runOnUiThread(() -> {
+                    if (sshConnected && statusLabel != null) statusLabel.setText("  VPS CONNECTED");
+                });
+            } catch (Exception e) {
+                final String reason = e.getClass().getSimpleName() + ": " + e.getMessage();
+                runOnUiThread(() -> {
+                    writeLine("Không gửi được lệnh SSH: " + reason, Color.RED, false);
+                    disconnectSsh();
+                });
+            }
+        });
     }
 
     private void sendSshControl(String value) {
-        if (!sshConnected || sshRawOut == null) {
-            statusLabel.setText("  HÃY KẾT NỐI VPS TRƯỚC");
+        final java.io.OutputStream remote = sshRawOut;
+        if (!sshConnected || remote == null) {
+            if (statusLabel != null) statusLabel.setText("  HÃY KẾT NỐI VPS TRƯỚC");
             return;
         }
-        try {
-            sshRawOut.write(value.getBytes("UTF-8"));
-            sshRawOut.flush();
-            input.requestFocus();
-        } catch (Exception e) {
-            writeLine("Lỗi gửi phím SSH: " + e.getMessage(), Color.RED, false);
-            disconnectSsh();
-        }
+        sshIoExecutor.execute(() -> {
+            try {
+                remote.write(value.getBytes("UTF-8"));
+                remote.flush();
+            } catch (Exception e) {
+                final String reason = e.getClass().getSimpleName() + ": " + e.getMessage();
+                runOnUiThread(() -> {
+                    writeLine("Lỗi gửi phím SSH: " + reason, Color.RED, false);
+                    disconnectSsh();
+                });
+            }
+        });
+        if (input != null) input.requestFocus();
     }
 
     private void disconnectSsh() {
+        // Detach state immediately so no new command can target a closing channel.
         sshReaderRunning = false;
-        try { if (sshChannel != null) sshChannel.disconnect(); } catch (Exception ignored) {}
-        try { if (sshSession != null) sshSession.disconnect(); } catch (Exception ignored) {}
-        sshChannel = null; sshSession = null; sshIn = null; sshOut = null; sshRawIn = null; sshRawOut = null; sshConnected = false;
+        sshConnected = false;
+        final ChannelShell oldChannel = sshChannel;
+        final Session oldSession = sshSession;
+        sshChannel = null; sshSession = null; sshIn = null; sshOut = null;
+        sshRawIn = null; sshRawOut = null;
         busy = false;
+        // Channel/session teardown may block; keep it off the UI thread too.
+        sshIoExecutor.execute(() -> {
+            try { if (oldChannel != null) oldChannel.disconnect(); } catch (Exception ignored) {}
+            try { if (oldSession != null) oldSession.disconnect(); } catch (Exception ignored) {}
+        });
         if (statusLabel != null) statusLabel.setText("  SHELL READY");
         writeLine("Đã ngắt VPS. Bạn đang quay về shell trên thiết bị.", GREEN, false);
         showPrompt();
