@@ -70,6 +70,10 @@ public class MainActivity extends Activity {
     private java.io.OutputStream sshRawOut;
     private volatile boolean sshReaderRunning = false;
     private volatile boolean sshConnected = false;
+    // Background pool: keep blocking SSH reads separate from command writes and disconnects.
+    private final java.util.concurrent.ExecutorService sshIoExecutor =
+            java.util.concurrent.Executors.newCachedThreadPool();
+    private final Object sshWriteLock = new Object();
     private BufferedWriter shellIn;
     private BufferedReader shellOut;
     private final ArrayList<String> history = new ArrayList<>();
