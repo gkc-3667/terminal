@@ -66,6 +66,9 @@ public class MainActivity extends Activity {
     private ChannelShell sshChannel;
     private BufferedWriter sshIn;
     private BufferedReader sshOut;
+    private java.io.InputStream sshRawIn;
+    private java.io.OutputStream sshRawOut;
+    private volatile boolean sshReaderRunning = false;
     private boolean sshConnected = false;
     private BufferedWriter shellIn;
     private BufferedReader shellOut;
@@ -288,6 +291,22 @@ public class MainActivity extends Activity {
         addQuick(quick, "python --version");
         quickScroll.addView(quick);
         content.addView(quickScroll);
+
+        LinearLayout sshKeys = new LinearLayout(this);
+        sshKeys.setGravity(Gravity.CENTER_VERTICAL);
+        sshKeys.setOrientation(LinearLayout.HORIZONTAL);
+        String[][] specialKeys = {{"CTRL-C", "\\u0003"}, {"CTRL-D", "\\u0004"}, {"TAB", "\\t"}, {"ESC", "\\u001b"}, {"↑", "\\u001b[A"}, {"↓", "\\u001b[B"}, {"←", "\\u001b[D"}, {"→", "\\u001b[C"}};
+        for (String[] k : specialKeys) {
+            Button keyButton = smallButton(k[0]);
+            keyButton.setOnClickListener(v -> sendSshControl(k[1]));
+            LinearLayout.LayoutParams kp = new LinearLayout.LayoutParams(-2, dp(34));
+            kp.rightMargin = dp(4);
+            sshKeys.addView(keyButton, kp);
+        }
+        HorizontalScrollView sshKeyScroll = new HorizontalScrollView(this);
+        sshKeyScroll.setHorizontalScrollBarEnabled(false);
+        sshKeyScroll.addView(sshKeys);
+        content.addView(sshKeyScroll);
 
         LinearLayout bar = new LinearLayout(this);
         bar.setGravity(Gravity.CENTER_VERTICAL);
@@ -1306,7 +1325,7 @@ public class MainActivity extends Activity {
         input.setText("");
         hideKeyboard();
         if (cmd.equalsIgnoreCase("ssh disconnect") || cmd.equalsIgnoreCase("vps disconnect")) { disconnectSsh(); return; }
-        if (sshConnected) { runSshCommand(cmd); return; }
+        if (sshConnected) { addHistory(cmd); runSshCommand(cmd); return; }
         if (shellIn == null || shellOut == null) return;
         if (cmd.matches("^(python|python3|pip|pip3)(\\s|$).*$")) { runPythonCommand(cmd); return; }
         if ("clear".equals(cmd)) { output.setText(""); showPrompt(); return; }
@@ -1659,16 +1678,29 @@ public class MainActivity extends Activity {
                 java.io.InputStream in = channel.getInputStream();
                 java.io.OutputStream out = channel.getOutputStream();
                 channel.connect(10000);
-                BufferedReader reader = new BufferedReader(new InputStreamReader(in));
-                BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(out));
                 synchronized (this) {
-                    sshSession = session; sshChannel = channel; sshOut = reader; sshIn = writer; sshConnected = true;
+                    sshSession = session; sshChannel = channel; sshRawIn = in; sshRawOut = out;
+                    sshIn = new BufferedWriter(new OutputStreamWriter(out, "UTF-8"));
+                    sshConnected = true; sshReaderRunning = true;
                 }
                 runOnUiThread(() -> {
                     busy = false; statusLabel.setText("  VPS CONNECTED  •  " + host);
-                    writeLine("Đã kết nối VPS. Lệnh tiếp theo sẽ chạy trên máy chủ từ xa.", GREEN, true);
-                    writeLine("Gõ 'ssh disconnect' để quay về shell trên thiết bị.", MUTED, false);
-                    showPrompt();
+                    writeLine("Đã kết nối VPS. Terminal nhận dữ liệu trực tiếp từ máy chủ.", GREEN, true);
+                    writeLine("Các phím CTRL-C / CTRL-D / TAB / ESC / mũi tên có thể gửi tới VPS.", MUTED, false);
+                    input.setHint("Nhập lệnh VPS rồi nhấn RUN/Enter...");
+                });
+                byte[] buffer = new byte[2048];
+                while (sshReaderRunning && !channel.isClosed()) {
+                    int n = in.read(buffer);
+                    if (n < 0) break;
+                    final String chunk = new String(buffer, 0, n, "UTF-8");
+                    runOnUiThread(() -> {
+                        if (output != null) { output.append(chunk); trimOutput(); scroll.post(() -> scroll.fullScroll(View.FOCUS_DOWN)); }
+                    });
+                }
+                if (sshReaderRunning) runOnUiThread(() -> {
+                    sshConnected = false; busy = false; statusLabel.setText("  SSH DISCONNECTED");
+                    writeLine("Kết nối VPS đã đóng.", Color.RED, false);
                 });
             } catch (Exception e) {
                 runOnUiThread(() -> {
@@ -1682,39 +1714,38 @@ public class MainActivity extends Activity {
     }
 
     private void runSshCommand(String command) {
-        writeLine("[VPS] $ " + command, BLUE, true);
-        busy = true; statusLabel.setText("  VPS RUNNING...");
-        new Thread(() -> {
-            StringBuilder result = new StringBuilder();
-            String marker = "__TP_SSH_DONE_" + System.nanoTime() + "__";
-            try {
-                sshIn.write(command + "\n");
-                sshIn.write("printf '\\n" + marker + ":%s\\n' \"$?\"\n");
-                sshIn.flush();
-                String line;
-                while ((line = sshOut.readLine()) != null) {
-                    if (line.contains(marker + ":")) break;
-                    result.append(line).append("\n");
-                }
-                String text = result.toString();
-                runOnUiThread(() -> {
-                    if (!text.isEmpty()) { output.append(text); trimOutput(); }
-                    busy = false; statusLabel.setText("  VPS CONNECTED"); showPrompt();
-                });
-            } catch (Exception e) {
-                runOnUiThread(() -> {
-                    busy = false; statusLabel.setText("  SSH ERROR");
-                    writeLine("Mất kết nối SSH: " + e.getMessage(), Color.RED, false);
-                    disconnectSsh();
-                });
-            }
-        }, "terminal-ssh-command").start();
+        if (!sshConnected || sshRawOut == null) {
+            writeLine("SSH chưa kết nối.", Color.RED, false); return;
+        }
+        try {
+            sshRawOut.write((command + "\\r").getBytes("UTF-8"));
+            sshRawOut.flush();
+            statusLabel.setText("  VPS CONNECTED");
+        } catch (Exception e) {
+            writeLine("Không gửi được lệnh SSH: " + e.getMessage(), Color.RED, false);
+            disconnectSsh();
+        }
+    }
+
+    private void sendSshControl(String value) {
+        if (!sshConnected || sshRawOut == null) {
+            statusLabel.setText("  HÃY KẾT NỐI VPS TRƯỚC");
+            return;
+        }
+        try {
+            sshRawOut.write(value.getBytes("UTF-8"));
+            sshRawOut.flush();
+            input.requestFocus();
+        } catch (Exception e) {
+            writeLine("Lỗi gửi phím SSH: " + e.getMessage(), Color.RED, false);
+            disconnectSsh();
+        }
     }
 
     private void disconnectSsh() {
-        try { if (sshChannel != null) sshChannel.disconnect(); } catch (Exception ignored) {}
+        sshReaderRunning = false;\n        try { if (sshChannel != null) sshChannel.disconnect(); } catch (Exception ignored) {}
         try { if (sshSession != null) sshSession.disconnect(); } catch (Exception ignored) {}
-        sshChannel = null; sshSession = null; sshIn = null; sshOut = null; sshConnected = false;
+        sshChannel = null; sshSession = null; sshIn = null; sshOut = null; sshRawIn = null; sshRawOut = null; sshConnected = false;
         busy = false;
         if (statusLabel != null) statusLabel.setText("  SHELL READY");
         writeLine("Đã ngắt VPS. Bạn đang quay về shell trên thiết bị.", GREEN, false);
