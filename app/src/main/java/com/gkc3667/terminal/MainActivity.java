@@ -775,9 +775,9 @@ public class MainActivity extends Activity {
             new int[]{Color.rgb(8, 6, 27), Color.rgb(24, 10, 53), Color.rgb(7, 13, 32)}));
         LinearLayout header = new LinearLayout(this);
         header.setGravity(Gravity.CENTER_VERTICAL);
-        Button back = smallButton("‹  PC APP");
+        Button back = smallButton("⌂  TRANG CHỦ");
         back.setTextColor(Color.WHITE);
-        back.setOnClickListener(v -> showPcAppLibrary());
+        back.setOnClickListener(v -> showHomeDashboard());
         header.addView(back);
         TextView heading = new TextView(this);
         heading.setText("  THÊM ỨNG DỤNG");
@@ -792,6 +792,21 @@ public class MainActivity extends Activity {
         caption.setTypeface(Typeface.MONOSPACE, Typeface.BOLD);
         caption.setPadding(dp(4), dp(12), dp(4), dp(8));
         page.addView(caption);
+
+        Button custom = new Button(this);
+        custom.setText("＋  THÊM ỨNG DỤNG");
+        custom.setAllCaps(false);
+        custom.setTextColor(Color.WHITE);
+        custom.setTextSize(17);
+        custom.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
+        custom.setGravity(Gravity.CENTER);
+        custom.setMinHeight(dp(62));
+        custom.setBackground(neonPanel(Color.rgb(112, 58, 220), Color.rgb(190, 145, 255), 14));
+        custom.setElevation(0);
+        LinearLayout.LayoutParams customLp = new LinearLayout.LayoutParams(-1, dp(62));
+        customLp.bottomMargin = dp(10);
+        page.addView(custom, customLp);
+        custom.setOnClickListener(v -> showCustomPcAppDialog());
 
         ScrollView sc = new ScrollView(this);
         LinearLayout list = new LinearLayout(this);
@@ -828,34 +843,21 @@ public class MainActivity extends Activity {
             add.setText("＋  THÊM ỨNG DỤNG");
             add.setAllCaps(false);
             add.setTextColor(Color.WHITE);
-            add.setTextSize(19);
+            add.setTextSize(16);
             add.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
             add.setGravity(Gravity.CENTER);
-            add.setMinHeight(dp(78));
-            add.setPadding(dp(12), dp(12), dp(12), dp(12));
+            add.setMinHeight(dp(54));
+            add.setPadding(dp(10), dp(8), dp(10), dp(8));
             add.setBackground(neonPanel(Color.rgb(105, 54, 201), Color.rgb(172, 125, 255), 13));
             add.setElevation(0);
-            LinearLayout.LayoutParams addLp = new LinearLayout.LayoutParams(-1, dp(78));
-            addLp.topMargin = dp(12);
+            LinearLayout.LayoutParams addLp = new LinearLayout.LayoutParams(-1, dp(54));
+            addLp.topMargin = dp(9);
             row.addView(add, addLp);
             add.setOnClickListener(v -> addPcApp(app[0], app[1]));
         }
         sc.addView(list);
         page.addView(sc, new LinearLayout.LayoutParams(-1, 0, 1));
-        Button custom = new Button(this);
-        custom.setText("+  THÊM BẰNG LINK RIÊNG");
-        custom.setAllCaps(false);
-        custom.setTextColor(Color.WHITE);
-        custom.setTextSize(18);
-        custom.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
-        custom.setGravity(Gravity.CENTER);
-        custom.setMinHeight(dp(76));
-        custom.setBackground(neonPanel(Color.rgb(112, 58, 220), Color.rgb(190, 145, 255), 15));
-        custom.setElevation(0);
-        LinearLayout.LayoutParams customLp = new LinearLayout.LayoutParams(-1, dp(76));
-        customLp.topMargin = dp(10);
-        page.addView(custom, customLp);
-        custom.setOnClickListener(v -> showCustomPcAppDialog());
+        sc.setOverScrollMode(View.OVER_SCROLL_NEVER);
         setContentView(page);
     }
     private void showCustomPcAppDialog() {
@@ -919,7 +921,8 @@ public class MainActivity extends Activity {
     }
 
 
-    private void showPcAppLibrary() { showPcDesktop(); }
+    // Skip the separate desktop screen and open the app library immediately.
+    private void showPcAppLibrary() { showAddPcAppDialog(); }
 
     private void showPcDesktop() {
         final int desktop = Color.rgb(17, 83, 132);
