@@ -8,7 +8,9 @@
 - Giới hạn tối đa 5 tab.
 - Lưu danh sách tab và tab đang chọn bằng SharedPreferences; khôi phục khi mở lại ứng dụng.
 - Tạm dừng WebView và bộ định thời khi ứng dụng xuống nền; tiếp tục khi quay lại.
-- Terminal đã được giới hạn lịch sử lệnh và dung lượng đầu ra ở các bản cập nhật trước.
+- Terminal giới hạn lịch sử còn 60 lệnh và đầu ra còn 6.000 ký tự để giảm tải giao diện.
+- Lưu và khôi phục thư mục làm việc cùng lịch sử lệnh; kiểm tra thư mục còn tồn tại trước khi khôi phục.
+- Giảm đổ bóng/elevation trên thẻ giao diện để hạn chế vẽ lại trên thiết bị yếu.
 
 ## Mục tiêu tối ưu tiếp theo
 1. Kiểm tra APK trên Chromebook cấu hình thấp, theo dõi độ trễ khi mở trang và chuyển tab.
