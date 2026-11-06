@@ -73,6 +73,9 @@ public class MainActivity extends Activity {
     // Keep one Chromium view alive during this app session for faster app switching.
     private WebView pcWebView;
     private String pcWebCurrentUrl = "";
+    private final ArrayList<String> browserTabs = new ArrayList<>();
+    private int browserTabIndex = 0;
+    private EditText browserAddress;
     private Dialog pcLibraryDialog;
     private View terminalRoot;
     private String currentPath = "";
@@ -893,291 +896,132 @@ public class MainActivity extends Activity {
     }
 
 
-    private void showPcAppLibrary() {
-        int widthDp = (int)(getResources().getDisplayMetrics().widthPixels / getResources().getDisplayMetrics().density);
-        int columns = widthDp >= 1100 ? 4 : (widthDp >= 700 ? 3 : (widthDp >= 430 ? 2 : 1));
-        LinearLayout page = new LinearLayout(this);
-        page.setOrientation(LinearLayout.VERTICAL);
-        page.setPadding(dp(14), dp(12), dp(14), dp(10));
-        page.setBackground(new android.graphics.drawable.GradientDrawable(
-            android.graphics.drawable.GradientDrawable.Orientation.TL_BR,
-            new int[]{Color.rgb(8, 6, 27), Color.rgb(24, 10, 53), Color.rgb(7, 13, 32)}));
-
-        LinearLayout header = new LinearLayout(this);
-        header.setGravity(Gravity.CENTER_VERTICAL);
-        Button home = smallButton("‹  TRANG CHỦ");
-        home.setTextColor(Color.WHITE);
-        home.setBackground(round(Color.rgb(55, 35, 94), 11));
-        home.setOnClickListener(v -> showHomeDashboard());
-        header.addView(home);
-        LinearLayout titleBox = new LinearLayout(this);
-        titleBox.setOrientation(LinearLayout.VERTICAL);
-        titleBox.setPadding(dp(12), 0, 0, 0);
-        TextView title = new TextView(this);
-        title.setText("PC APP");
-        title.setTextColor(Color.WHITE); title.setTextSize(21);
-        title.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
-        TextView sub = new TextView(this);
-        sub.setText("THƯ VIỆN  •  ỨNG DỤNG CỦA BẠN");
-        sub.setTextColor(Color.rgb(190, 155, 255)); sub.setTextSize(12);
-        sub.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
-        titleBox.addView(title); titleBox.addView(sub);
-        header.addView(titleBox, new LinearLayout.LayoutParams(0, -2, 1));
-        Button add = smallButton("+  THÊM APP");
-        add.setTextColor(Color.WHITE);
-        add.setTextSize(13);
-        add.setBackground(round(Color.rgb(112, 58, 220), 12));
-        add.setOnClickListener(v -> showAddPcAppDialog());
-        header.addView(add);
-        page.addView(header);
-
-        TextView intro = new TextView(this);
-        intro.setText("Chọn ứng dụng để mở trong không gian PC. Discord sẽ hiển thị giao diện web máy tính giống video của bạn.");
-        intro.setTextColor(Color.rgb(190, 184, 216));
-        intro.setTextSize(14);
-        intro.setPadding(dp(3), dp(12), dp(3), dp(10));
-        page.addView(intro);
-
-        ScrollView sc = new ScrollView(this);
-        sc.setFillViewport(false);
-        sc.setVerticalScrollBarEnabled(false);
-        LinearLayout content = new LinearLayout(this);
-        content.setOrientation(LinearLayout.VERTICAL);
-        JSONArray apps = getPcApps();
-        if (apps.length() == 0) {
-            TextView empty = new TextView(this);
-            empty.setText("Chưa có ứng dụng nào. Nhấn + THÊM APP để chọn ứng dụng hoặc tự dán link.");
-            empty.setTextColor(MUTED); empty.setTextSize(15); empty.setGravity(Gravity.CENTER);
-            empty.setPadding(dp(18), dp(42), dp(18), dp(42));
-            empty.setBackground(neonPanel(Color.rgb(22, 15, 48), Color.rgb(95, 55, 160), 16));
-            content.addView(empty);
-        }
-        LinearLayout gridRow = null;
-        int inRow = 0;
-        for (int i = 0; i < apps.length(); i++) {
-            JSONObject item = apps.optJSONObject(i);
-            if (item == null) continue;
-            final String appName = item.optString("name", "Ứng dụng");
-            final String appUrl = item.optString("url", "");
-            final String appId = item.optString("id", "");
-            if (gridRow == null || inRow == columns) {
-                gridRow = new LinearLayout(this);
-                gridRow.setOrientation(LinearLayout.HORIZONTAL);
-                gridRow.setGravity(Gravity.TOP);
-                content.addView(gridRow);
-                inRow = 0;
-            }
-            LinearLayout card = new LinearLayout(this);
-            card.setOrientation(LinearLayout.VERTICAL);
-            card.setPadding(dp(12), dp(12), dp(12), dp(11));
-            card.setBackground(neonPanel(Color.rgb(19, 15, 45), Color.rgb(91, 58, 160), 16));
-            card.setElevation(dp(3));
-
-            LinearLayout cardTop = new LinearLayout(this);
-            cardTop.setGravity(Gravity.CENTER_VERTICAL);
-            TextView appIcon = new TextView(this);
-            String lower = appName.toLowerCase(java.util.Locale.ROOT);
-            String glyph = lower.contains("discord") ? "💬" : lower.contains("youtube") ? "▶" :
-                lower.contains("roblox") ? "◇" : lower.contains("geforce") ? "🎮" :
-                lower.contains("telegram") ? "✈" : lower.contains("spotify") ? "♫" :
-                lower.contains("minecraft") ? "⛏" : lower.contains("free fire") ? "🔥" : "🌐";
-            appIcon.setText(glyph); appIcon.setTextSize(27); appIcon.setGravity(Gravity.CENTER);
-            appIcon.setBackground(round(Color.rgb(62, 35, 119), 13));
-            cardTop.addView(appIcon, new LinearLayout.LayoutParams(dp(48), dp(46)));
-            View topSpacer = new View(this);
-            cardTop.addView(topSpacer, new LinearLayout.LayoutParams(0, 1, 1));
-            Button menu = smallButton("⋮");
-            menu.setTextSize(18);
-            cardTop.addView(menu, new LinearLayout.LayoutParams(dp(38), dp(38)));
-            menu.setOnClickListener(v -> new AlertDialog.Builder(this)
-                .setTitle(appName)
-                .setItems(new String[]{"Đổi tên / đổi link", "Xóa ứng dụng"}, (d, which) -> {
-                    if (which == 0) {
-                        showEditPcAppDialog(appId, appName, appUrl);
-                    } else {
-                        new AlertDialog.Builder(this).setTitle("Xóa " + appName + "?")
-                            .setMessage("Ứng dụng sẽ bị xóa khỏi thư viện trên thiết bị.")
-                            .setNegativeButton("HỦY", null)
-                            .setPositiveButton("XÓA", (confirm, w) -> {
-                                JSONArray current = getPcApps();
-                                JSONArray kept = new JSONArray();
-                                for (int j = 0; j < current.length(); j++) {
-                                    JSONObject candidate = current.optJSONObject(j);
-                                    if (candidate != null && !candidate.optString("id").equals(appId)) kept.put(candidate);
-                                }
-                                savePcApps(kept);
-                                showPcAppLibrary();
-                            }).show();
-                    }
-                }).show());
-
-            TextView name = new TextView(this);
-            name.setText(appName); name.setTextColor(Color.WHITE); name.setTextSize(17);
-            name.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
-            name.setPadding(0, dp(9), 0, dp(3));
-            TextView url = new TextView(this);
-            url.setText(appUrl); url.setTextColor(Color.rgb(160, 151, 190)); url.setTextSize(12);
-            url.setSingleLine(true); url.setEllipsize(android.text.TextUtils.TruncateAt.END);
-            Button launch = smallButton("MỞ ỨNG DỤNG  →");
-            launch.setTextColor(Color.WHITE);
-            launch.setBackground(round(Color.rgb(91, 48, 174), 10));
-            LinearLayout.LayoutParams launchLp = new LinearLayout.LayoutParams(-1, dp(38));
-            launchLp.topMargin = dp(10);
-            card.addView(cardTop); card.addView(name); card.addView(url); card.addView(launch, launchLp);
-            card.setOnClickListener(v -> openPcApp(appName, appUrl));
-            launch.setOnClickListener(v -> openPcApp(appName, appUrl));
-
-            LinearLayout.LayoutParams cardLp = new LinearLayout.LayoutParams(0, -2, 1);
-            cardLp.setMargins(dp(4), dp(4), dp(4), dp(8));
-            gridRow.addView(card, cardLp);
-            inRow++;
-        }
-        if (gridRow != null && inRow < columns) {
-            for (int k = inRow; k < columns; k++) {
-                View filler = new View(this);
-                gridRow.addView(filler, new LinearLayout.LayoutParams(0, dp(1), 1));
-            }
-        }
-        sc.addView(content);
-        page.addView(sc, new LinearLayout.LayoutParams(-1, 0, 1));
-
-        LinearLayout nav = new LinearLayout(this);
-        nav.setGravity(Gravity.CENTER);
-        Button terminal = smallButton("›_  TERMINAL");
-        Button ssh = smallButton("⇄  SSH / VPS");
-        Button homeBottom = smallButton("⌂  TRANG CHỦ");
-        terminal.setOnClickListener(v -> setContentView(terminalRoot));
-        ssh.setOnClickListener(v -> showSshPage());
-        homeBottom.setOnClickListener(v -> showHomeDashboard());
-        for (Button b : new Button[]{terminal, ssh, homeBottom}) {
-            b.setTextColor(Color.WHITE);
-            b.setBackground(round(Color.rgb(42, 30, 74), 10));
-            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, dp(42), 1);
-            lp.setMargins(dp(4), dp(7), dp(4), 0);
-            nav.addView(b, lp);
-        }
-        page.addView(nav);
-        setContentView(page);
-    }
+    private void showPcAppLibrary() { openPcApp("Chrome", "https://www.google.com"); }
 
     private void openPcApp(String appName, String appUrl) {
+        if (browserTabs.isEmpty()) browserTabs.add(appUrl);
+        else if (appUrl != null && !appUrl.equals(pcWebCurrentUrl)) browserTabs.set(browserTabIndex, appUrl);
         LinearLayout page = new LinearLayout(this);
         page.setOrientation(LinearLayout.VERTICAL);
-        page.setBackgroundColor(Color.rgb(16, 17, 22));
-
-        LinearLayout toolbar = new LinearLayout(this);
-        toolbar.setGravity(Gravity.CENTER_VERTICAL);
-        toolbar.setPadding(dp(8), dp(5), dp(8), dp(5));
-        toolbar.setBackgroundColor(Color.rgb(28, 25, 42));
-        Button library = smallButton("‹  PC APP");
-        library.setTextColor(Color.WHITE);
-        toolbar.addView(library);
-        TextView label = new TextView(this);
-        label.setText(appName + "  •  DESKTOP");
-        label.setTextColor(Color.WHITE);
-        label.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
-        label.setTextSize(15);
-        label.setPadding(dp(10), 0, dp(5), 0);
-        toolbar.addView(label, new LinearLayout.LayoutParams(0, dp(42), 1));
-        Button webBack = smallButton("←");
-        Button reload = smallButton("↻");
-        Button external = smallButton("CHROME ↗");
-        for (Button b : new Button[]{webBack, reload, external}) {
-            LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(-2, dp(38));
-            p.leftMargin = dp(5);
-            toolbar.addView(b, p);
+        page.setBackgroundColor(Color.rgb(20, 21, 25));
+        LinearLayout bar = new LinearLayout(this);
+        bar.setGravity(Gravity.CENTER_VERTICAL);
+        bar.setPadding(dp(5), dp(5), dp(5), dp(5));
+        bar.setBackgroundColor(Color.rgb(34, 35, 41));
+        Button home = smallButton("⌂");
+        Button tab = smallButton("TAB " + (browserTabIndex + 1));
+        Button plus = smallButton("+");
+        bar.addView(home, new LinearLayout.LayoutParams(dp(40), dp(40)));
+        bar.addView(tab, new LinearLayout.LayoutParams(-2, dp(40)));
+        bar.addView(plus, new LinearLayout.LayoutParams(dp(40), dp(40)));
+        browserAddress = new EditText(this);
+        browserAddress.setSingleLine(true);
+        browserAddress.setTextColor(Color.WHITE);
+        browserAddress.setHintTextColor(Color.LTGRAY);
+        browserAddress.setHint("Tìm kiếm hoặc nhập địa chỉ");
+        browserAddress.setTextSize(14);
+        browserAddress.setPadding(dp(10), 0, dp(8), 0);
+        browserAddress.setBackground(round(Color.rgb(57, 59, 67), 20));
+        browserAddress.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_URI);
+        browserAddress.setImeOptions(EditorInfo.IME_ACTION_GO);
+        LinearLayout.LayoutParams addrLp = new LinearLayout.LayoutParams(0, dp(40), 1);
+        addrLp.setMargins(dp(5), 0, dp(5), 0);
+        bar.addView(browserAddress, addrLp);
+        Button go = smallButton("ĐI");
+        bar.addView(go, new LinearLayout.LayoutParams(dp(42), dp(40)));
+        page.addView(bar);
+        LinearLayout nav = new LinearLayout(this);
+        nav.setGravity(Gravity.CENTER_VERTICAL);
+        nav.setPadding(dp(5), dp(3), dp(5), dp(3));
+        nav.setBackgroundColor(Color.rgb(27, 28, 33));
+        Button back = smallButton("←"), forward = smallButton("→"), reload = smallButton("↻"), close = smallButton("×");
+        for (Button q : new Button[]{back, forward, reload, close}) {
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(dp(42), dp(34));
+            lp.rightMargin = dp(5); nav.addView(q, lp);
         }
-        page.addView(toolbar);
-
+        page.addView(nav);
         WebView web = pcWebView;
         if (web == null) {
-            web = new WebView(this);
-            pcWebView = web;
-            web.setFocusable(true);
-            web.setFocusableInTouchMode(true);
+            web = new WebView(this); pcWebView = web;
+            web.setFocusable(true); web.setFocusableInTouchMode(true);
             web.setOverScrollMode(View.OVER_SCROLL_NEVER);
-            WebSettings settings = web.getSettings();
-            settings.setJavaScriptEnabled(true);
-            settings.setDomStorageEnabled(true);
-            settings.setDatabaseEnabled(false);
-            settings.setLoadWithOverviewMode(false);
-            settings.setUseWideViewPort(true);
-            settings.setSupportZoom(true);
-            settings.setBuiltInZoomControls(true);
-            settings.setDisplayZoomControls(false);
-            settings.setMediaPlaybackRequiresUserGesture(false);
-            settings.setLoadsImagesAutomatically(true);
-            settings.setCacheMode(WebSettings.LOAD_DEFAULT);
-            settings.setBlockNetworkLoads(false);
-            settings.setLoadsImagesAutomatically(true);
-            settings.setJavaScriptCanOpenWindowsAutomatically(true);
-            String currentUa = settings.getUserAgentString();
-            java.util.regex.Matcher chromeVersion = java.util.regex.Pattern
-                .compile("Chrome/([0-9.]+)").matcher(currentUa);
-            String version = chromeVersion.find() ? chromeVersion.group(1) : "120.0.0.0";
-            settings.setUserAgentString("Mozilla/5.0 (X11; CrOS x86_64 16093.0.0) " +
-                "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/" + version + " Safari/537.36");
-            android.webkit.CookieManager cookies = android.webkit.CookieManager.getInstance();
-            cookies.setAcceptCookie(true);
-            if (Build.VERSION.SDK_INT >= 21) cookies.setAcceptThirdPartyCookies(web, true);
+            WebSettings ws = web.getSettings();
+            ws.setJavaScriptEnabled(true); ws.setDomStorageEnabled(true);
+            ws.setDatabaseEnabled(false); ws.setLoadWithOverviewMode(true);
+            ws.setUseWideViewPort(true); ws.setSupportZoom(true);
+            ws.setBuiltInZoomControls(true); ws.setDisplayZoomControls(false);
+            ws.setMediaPlaybackRequiresUserGesture(true);
+            ws.setLoadsImagesAutomatically(true); ws.setCacheMode(WebSettings.LOAD_DEFAULT);
+            ws.setJavaScriptCanOpenWindowsAutomatically(false);
+            if (Build.VERSION.SDK_INT >= 21) {
+                ws.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW);
+                android.webkit.CookieManager.getInstance().setAcceptThirdPartyCookies(web, true);
+            }
+            android.webkit.CookieManager.getInstance().setAcceptCookie(true);
+            String ua = ws.getUserAgentString();
+            java.util.regex.Matcher cm = java.util.regex.Pattern.compile("Chrome/([0-9.]+)").matcher(ua);
+            String ver = cm.find() ? cm.group(1) : "120.0.0.0";
+            ws.setUserAgentString("Mozilla/5.0 (X11; CrOS x86_64 16093.0.0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/" + ver + " Safari/537.36");
             web.setWebViewClient(new WebViewClient() {
-                @Override public void onPageFinished(WebView view, String url) {
-                    super.onPageFinished(view, url);
-                    if (url != null && url.startsWith("https://discord.com/")) {
-                        view.evaluateJavascript("(function(){var m=document.querySelector('meta[name=viewport]');" +
-                            "if(!m){m=document.createElement('meta');m.name='viewport';document.head.appendChild(m);}" +
-                            "m.setAttribute('content','width=device-width, initial-scale=1.0, minimum-scale=0.75, maximum-scale=2.5, user-scalable=yes');var st=document.getElementById('gkc-performance-style');if(!st){st=document.createElement('style');st.id='gkc-performance-style';st.textContent='*,*::before,*::after{scroll-behavior:auto!important;animation-duration:0.01ms!important;animation-iteration-count:1!important;transition-duration:0.01ms!important;}';document.head.appendChild(st);}})();", null);
-                    }
+                @Override public void onPageFinished(WebView v, String url) {
+                    pcWebCurrentUrl = url == null ? "" : url;
+                    if (browserAddress != null && url != null) browserAddress.setText(url);
                 }
-                @Override public void onReceivedError(WebView view, android.webkit.WebResourceRequest request,
-                                                       android.webkit.WebResourceError error) {
-                    if (request.isForMainFrame()) showWebErrorPage(view, error.getDescription().toString());
+                @Override public void onReceivedError(WebView v, android.webkit.WebResourceRequest req, android.webkit.WebResourceError err) {
+                    if (req.isForMainFrame()) showWebErrorPage(v, err.getDescription().toString());
                 }
-                @Override public void onReceivedHttpError(WebView view, android.webkit.WebResourceRequest request,
-                                                           android.webkit.WebResourceResponse response) {
-                    if (request.isForMainFrame() && response.getStatusCode() >= 400)
-                        showWebErrorPage(view, "Máy chủ trả về lỗi HTTP " + response.getStatusCode());
-                }
-                @Override public void onReceivedSslError(WebView view, android.webkit.SslErrorHandler handler,
-                                                          android.net.http.SslError error) {
-                    handler.cancel();
-                    showWebErrorPage(view, "Chứng chỉ bảo mật của trang web không hợp lệ. Kết nối đã bị chặn.");
+                @Override public void onReceivedSslError(WebView v, android.webkit.SslErrorHandler h, android.net.http.SslError e) {
+                    h.cancel(); showWebErrorPage(v, "Chứng chỉ bảo mật không hợp lệ. Kết nối đã bị chặn.");
                 }
             });
             web.setWebChromeClient(new WebChromeClient());
         }
-        if (web.getParent() instanceof ViewGroup) {
-            ((ViewGroup) web.getParent()).removeView(web);
-        }
-        // Resume Chromium timers only while the PC app screen is being shown.
-        web.resumeTimers();
-        web.onResume();
+        if (web.getParent() instanceof ViewGroup) ((ViewGroup)web.getParent()).removeView(web);
+        web.resumeTimers(); web.onResume();
         page.addView(web, new LinearLayout.LayoutParams(-1, 0, 1));
-        final WebView activeWeb = web;
-        library.setOnClickListener(v -> {
-            activeWeb.onPause();
-            activeWeb.pauseTimers();
-            android.webkit.CookieManager.getInstance().flush();
-            if (activeWeb.getParent() instanceof ViewGroup) {
-                ((ViewGroup) activeWeb.getParent()).removeView(activeWeb);
-            }
-            showPcAppLibrary();
+        final WebView active = web;
+        Runnable goTo = () -> {
+            String q = browserAddress.getText().toString().trim();
+            if (q.isEmpty()) return;
+            String url;
+            if (q.matches("(?i)^https?://.*")) url = q;
+            else if (q.matches("(?i)^[a-z0-9.-]+\\.[a-z]{2,}(/.*)?$")) url = "https://" + q;
+            else url = "https://www.google.com/search?q=" + Uri.encode(q);
+            browserTabs.set(browserTabIndex, url); active.loadUrl(url); browserAddress.clearFocus();
+        };
+        browserAddress.setText(browserTabs.get(browserTabIndex));
+        browserAddress.setOnEditorActionListener((v, action, event) -> {
+            if (action == EditorInfo.IME_ACTION_GO || (event != null && event.getKeyCode() == KeyEvent.KEYCODE_ENTER)) {
+                goTo.run(); return true;
+            } return false;
         });
-        webBack.setOnClickListener(v -> { if (activeWeb.canGoBack()) activeWeb.goBack(); });
-        reload.setOnClickListener(v -> activeWeb.reload());
-        external.setOnClickListener(v -> {
-            try { startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(appUrl))); }
-            catch (Exception e) {
-                new AlertDialog.Builder(this).setMessage("Không tìm thấy trình duyệt để mở liên kết.")
-                    .setPositiveButton("OK", null).show();
-            }
+        go.setOnClickListener(v -> goTo.run());
+        home.setOnClickListener(v -> { browserTabs.set(browserTabIndex, "https://www.google.com"); active.loadUrl("https://www.google.com"); });
+        plus.setOnClickListener(v -> {
+            browserTabs.add("https://www.google.com"); browserTabIndex = browserTabs.size() - 1;
+            tab.setText("TAB " + (browserTabIndex + 1)); browserAddress.setText(browserTabs.get(browserTabIndex));
+            active.loadUrl(browserTabs.get(browserTabIndex));
         });
+        tab.setOnClickListener(v -> {
+            String[] names = new String[browserTabs.size()];
+            for (int i=0;i<names.length;i++) names[i] = (i==browserTabIndex ? "● " : "") + "Tab " + (i+1) + " — " + browserTabs.get(i);
+            new AlertDialog.Builder(this).setTitle("Các tab").setItems(names, (d,n) -> {
+                browserTabIndex=n; tab.setText("TAB " + (n+1)); browserAddress.setText(browserTabs.get(n)); active.loadUrl(browserTabs.get(n));
+            }).show();
+        });
+        close.setOnClickListener(v -> {
+            if (browserTabs.size()==1) browserTabs.set(0,"https://www.google.com");
+            else { browserTabs.remove(browserTabIndex); browserTabIndex=Math.max(0,browserTabIndex-1); }
+            tab.setText("TAB " + (browserTabIndex+1)); browserAddress.setText(browserTabs.get(browserTabIndex)); active.loadUrl(browserTabs.get(browserTabIndex));
+        });
+        back.setOnClickListener(v -> { if(active.canGoBack()) active.goBack(); });
+        forward.setOnClickListener(v -> { if(active.canGoForward()) active.goForward(); });
+        reload.setOnClickListener(v -> active.reload());
         setContentView(page);
-        if (!appUrl.equals(pcWebCurrentUrl) || activeWeb.getUrl() == null) {
-            pcWebCurrentUrl = appUrl;
-            activeWeb.loadUrl(appUrl);
-        }
+        String target=browserTabs.get(browserTabIndex);
+        if (!target.equals(pcWebCurrentUrl) || active.getUrl()==null) active.loadUrl(target);
     }
+
     private void showWebErrorPage(WebView web, String detail) {
         String safe = detail == null ? "Không thể kết nối tới trang web." :
             detail.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;");
