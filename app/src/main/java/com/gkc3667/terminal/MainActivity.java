@@ -1172,7 +1172,7 @@ public class MainActivity extends Activity {
             ws.setBuiltInZoomControls(true);
             ws.setDisplayZoomControls(false);
             ws.setTextZoom(90);
-            ws.setInitialScale(0);
+            web.setInitialScale(0);
             // Request the desktop site while fitting its wide layout to the phone/tablet screen.
             ws.setUserAgentString("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36");
             ws.setMediaPlaybackRequiresUserGesture(true);
