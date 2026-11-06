@@ -1099,8 +1099,10 @@ public class MainActivity extends Activity {
             ws.setJavaScriptEnabled(true); ws.setDomStorageEnabled(true);
             ws.setGeolocationEnabled(false); ws.setSaveFormData(false);
             ws.setDatabaseEnabled(false); ws.setLoadWithOverviewMode(true);
-            ws.setUseWideViewPort(true); ws.setSupportZoom(true);
-            ws.setBuiltInZoomControls(true); ws.setDisplayZoomControls(false);
+            // Keep WebView lightweight on low-RAM Android devices.
+            // Mobile layout avoids downloading/rendering oversized desktop pages.
+            ws.setUseWideViewPort(true); ws.setSupportZoom(false);
+            ws.setBuiltInZoomControls(false); ws.setDisplayZoomControls(false);
             ws.setMediaPlaybackRequiresUserGesture(true);
             ws.setLoadsImagesAutomatically(true); ws.setCacheMode(WebSettings.LOAD_DEFAULT);
             ws.setJavaScriptCanOpenWindowsAutomatically(false);
@@ -1109,10 +1111,7 @@ public class MainActivity extends Activity {
                 android.webkit.CookieManager.getInstance().setAcceptThirdPartyCookies(web, true);
             }
             android.webkit.CookieManager.getInstance().setAcceptCookie(true);
-            String ua = ws.getUserAgentString();
-            java.util.regex.Matcher cm = java.util.regex.Pattern.compile("Chrome/([0-9.]+)").matcher(ua);
-            String ver = cm.find() ? cm.group(1) : "120.0.0.0";
-            ws.setUserAgentString("Mozilla/5.0 (X11; CrOS x86_64 16093.0.0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/" + ver + " Safari/537.36");
+            // Keep Android WebView's native mobile user agent for responsive, lighter pages.
             web.setWebViewClient(new WebViewClient() {
                 @Override public void onPageFinished(WebView v, String url) {
                     pcWebCurrentUrl = url == null ? "" : url;
