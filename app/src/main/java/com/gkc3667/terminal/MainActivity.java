@@ -5,6 +5,7 @@ import android.app.AlertDialog;
 import android.widget.ArrayAdapter;
 import android.widget.Spinner;
 import com.jcraft.jsch.JSch;
+import com.jcraft.jsch.UserInfo;
 import com.jcraft.jsch.Session;
 import com.jcraft.jsch.ChannelShell;
 import android.os.Bundle;
@@ -1540,12 +1541,17 @@ public class MainActivity extends Activity {
         form.setPadding(dp(18), dp(8), dp(18), dp(8));
         ScrollView sc = new ScrollView(this);
         TextView note = new TextView(this);
-        note.setText("Nhập thông tin SSH do nhà cung cấp VPS cấp. Có thể dùng IP hoặc tên miền. Để trống mật khẩu nếu dùng SSH Key.");
+        note.setText("GKC SSH • Kết nối trực tiếp tới VPS Ubuntu bằng SSH thật. Nhập đúng Host/IP và Port do nhà cung cấp cấp (Pinggy thường dùng port riêng). Mật khẩu và private key không được lưu trong hồ sơ.");
         note.setTextColor(MUTED); note.setTextSize(15); form.addView(note);
-        EditText host = field("IP hoặc tên miền VPS", false);
-        EditText port = field("Cổng SSH (mặc định 22)", false); port.setText("22");
-        EditText user = field("Tên đăng nhập (ví dụ root)", false);
-        EditText pass = field("Mật khẩu SSH (nếu có)", true);
+        SharedPreferences sshPrefs = getSharedPreferences("gkc_ssh_profiles", MODE_PRIVATE);
+        EditText host = field("Host / IP VPS", false);
+        host.setHint("Ví dụ: ten-may-chu.run.pinggy-free.link");
+        host.setText(sshPrefs.getString("last_host", ""));
+        EditText port = field("Port SSH", false);
+        port.setText(sshPrefs.getString("last_port", "34071"));
+        EditText user = field("Username", false);
+        user.setText(sshPrefs.getString("last_user", "root"));
+        EditText pass = field("Mật khẩu SSH (không lưu lại)", true);
         EditText key = field("SSH Private Key (dán toàn bộ nội dung nếu dùng key)", false);
         key.setMinLines(3); key.setGravity(Gravity.TOP);
         EditText phrase = field("Passphrase của SSH Key (nếu có)", true);
@@ -1558,13 +1564,32 @@ public class MainActivity extends Activity {
         addFormField(form, "SSH Key (không bắt buộc)", key);
         addFormField(form, "Key passphrase (nếu có)", phrase);
         sc.addView(form);
-        new AlertDialog.Builder(this).setTitle("Kết nối VPS qua SSH")
-            .setView(sc).setNegativeButton("Hủy", null)
-            .setPositiveButton("Kết nối", (d, w) -> connectSsh(
-                host.getText().toString().trim(), port.getText().toString().trim(),
-                user.getText().toString().trim(), pass.getText().toString(),
-                key.getText().toString(), phrase.getText().toString(), mode.getSelectedItemPosition()))
-            .show();
+        AlertDialog dialog = new AlertDialog.Builder(this).setTitle("GKC SSH • Thêm máy chủ")
+            .setView(sc).setNegativeButton("Đóng", null)
+            .setPositiveButton("Kết nối", null)
+            .setNeutralButton("Lưu hồ sơ", null).create();
+        dialog.setOnShowListener(ignored -> {
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
+                String h = host.getText().toString().trim();
+                String p = port.getText().toString().trim();
+                String u = user.getText().toString().trim();
+                if (h.isEmpty() || u.isEmpty()) {
+                    host.setError("Nhập Host/IP"); user.setError("Nhập username"); return;
+                }
+                sshPrefs.edit().putString("last_host", h).putString("last_port", p)
+                    .putString("last_user", u).apply();
+                dialog.dismiss();
+                connectSsh(h, p, u, pass.getText().toString(),
+                    key.getText().toString(), phrase.getText().toString(), mode.getSelectedItemPosition());
+            });
+            dialog.getButton(AlertDialog.BUTTON_NEUTRAL).setOnClickListener(v -> {
+                sshPrefs.edit().putString("last_host", host.getText().toString().trim())
+                    .putString("last_port", port.getText().toString().trim())
+                    .putString("last_user", user.getText().toString().trim()).apply();
+                Toast.makeText(this, "Đã lưu hồ sơ máy chủ (không lưu mật khẩu/key).", Toast.LENGTH_SHORT).show();
+            });
+        });
+        dialog.show();
     }
 
     private void addFormField(LinearLayout parent, String label, View inputView) {
@@ -1602,10 +1627,31 @@ public class MainActivity extends Activity {
                 if (!password.isEmpty() && mode != 2) session.setPassword(password);
                 Properties config = new Properties();
                 // First connection is convenient, but host key identity is not verified in this mode.
-                config.put("StrictHostKeyChecking", "no");
+                config.put("StrictHostKeyChecking", "ask");
                 config.put("PreferredAuthentications", mode == 1 ? "password,keyboard-interactive" :
                     (mode == 2 ? "publickey" : "publickey,password,keyboard-interactive"));
                 session.setConfig(config);
+                session.setUserInfo(new UserInfo() {
+                    @Override public String getPassword() { return password; }
+                    @Override public boolean promptPassword(String message) { return !password.isEmpty(); }
+                    @Override public boolean promptPassphrase(String message) { return !passphrase.isEmpty(); }
+                    @Override public String getPassphrase() { return passphrase; }
+                    @Override public boolean promptYesNo(String message) {
+                        final java.util.concurrent.CountDownLatch latch = new java.util.concurrent.CountDownLatch(1);
+                        final boolean[] accepted = new boolean[]{false};
+                        runOnUiThread(() -> new AlertDialog.Builder(MainActivity.this)
+                            .setTitle("Xác minh máy chủ SSH")
+                            .setMessage(message + "\\n\\nChỉ chấp nhận nếu đây đúng là VPS của bạn. Nếu không chắc, hãy hủy và xác minh fingerprint với nhà cung cấp.")
+                            .setNegativeButton("Hủy", (d,w) -> { accepted[0] = false; latch.countDown(); })
+                            .setPositiveButton("Tin cậy máy chủ này", (d,w) -> { accepted[0] = true; latch.countDown(); })
+                            .setOnCancelListener(d -> latch.countDown()).show());
+                        try { return latch.await(90, java.util.concurrent.TimeUnit.SECONDS) && accepted[0]; }
+                        catch (InterruptedException e) { Thread.currentThread().interrupt(); return false; }
+                    }
+                    @Override public void showMessage(String message) {
+                        runOnUiThread(() -> Toast.makeText(MainActivity.this, message, Toast.LENGTH_LONG).show());
+                    }
+                });
                 session.connect(18000);
                 ChannelShell channel = (ChannelShell) session.openChannel("shell");
                 channel.setPtyType("xterm"); channel.setPty(true);
