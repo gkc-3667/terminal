@@ -90,6 +90,7 @@ public class MainActivity extends Activity {
         getWindow().getDecorView().setSystemUiVisibility(0);
         currentPath = getFilesDir().getAbsolutePath();
         loadAppearance();
+        loadBrowserProgress();
         buildUi();
         startShell();
         writeLine("GKC APP  •  ANDROID SHELL", GREEN, true);
@@ -947,6 +948,7 @@ public class MainActivity extends Activity {
             web.setOverScrollMode(View.OVER_SCROLL_NEVER);
             WebSettings ws = web.getSettings();
             ws.setJavaScriptEnabled(true); ws.setDomStorageEnabled(true);
+            ws.setGeolocationEnabled(false); ws.setSaveFormData(false);
             ws.setDatabaseEnabled(false); ws.setLoadWithOverviewMode(true);
             ws.setUseWideViewPort(true); ws.setSupportZoom(true);
             ws.setBuiltInZoomControls(true); ws.setDisplayZoomControls(false);
@@ -965,6 +967,8 @@ public class MainActivity extends Activity {
             web.setWebViewClient(new WebViewClient() {
                 @Override public void onPageFinished(WebView v, String url) {
                     pcWebCurrentUrl = url == null ? "" : url;
+                    if (url != null && browserTabIndex >= 0 && browserTabIndex < browserTabs.size()) browserTabs.set(browserTabIndex, url);
+                    saveBrowserProgress();
                     if (browserAddress != null && url != null) browserAddress.setText(url);
                 }
                 @Override public void onReceivedError(WebView v, android.webkit.WebResourceRequest req, android.webkit.WebResourceError err) {
@@ -987,7 +991,7 @@ public class MainActivity extends Activity {
             if (q.matches("(?i)^https?://.*")) url = q;
             else if (q.matches("(?i)^[a-z0-9.-]+\\.[a-z]{2,}(/.*)?$")) url = "https://" + q;
             else url = "https://www.google.com/search?q=" + Uri.encode(q);
-            browserTabs.set(browserTabIndex, url); active.loadUrl(url); browserAddress.clearFocus();
+            browserTabs.set(browserTabIndex, url); saveBrowserProgress(); active.loadUrl(url); browserAddress.clearFocus();
         };
         browserAddress.setText(browserTabs.get(browserTabIndex));
         browserAddress.setOnEditorActionListener((v, action, event) -> {
@@ -996,9 +1000,10 @@ public class MainActivity extends Activity {
             } return false;
         });
         go.setOnClickListener(v -> goTo.run());
-        home.setOnClickListener(v -> { browserTabs.set(browserTabIndex, "https://www.google.com"); active.loadUrl("https://www.google.com"); });
+        home.setOnClickListener(v -> { browserTabs.set(browserTabIndex, "https://www.google.com"); saveBrowserProgress(); active.loadUrl("https://www.google.com"); });
         plus.setOnClickListener(v -> {
-            browserTabs.add("https://www.google.com"); browserTabIndex = browserTabs.size() - 1;
+            if (browserTabs.size() >= 5) { new AlertDialog.Builder(this).setMessage("Để máy đỡ lag, GKC APP giới hạn tối đa 5 tab. Hãy đóng tab không dùng nhé.").setPositiveButton("OK", null).show(); return; }
+            browserTabs.add("https://www.google.com"); browserTabIndex = browserTabs.size() - 1; saveBrowserProgress();
             tab.setText("TAB " + (browserTabIndex + 1)); browserAddress.setText(browserTabs.get(browserTabIndex));
             active.loadUrl(browserTabs.get(browserTabIndex));
         });
@@ -1006,13 +1011,13 @@ public class MainActivity extends Activity {
             String[] names = new String[browserTabs.size()];
             for (int i=0;i<names.length;i++) names[i] = (i==browserTabIndex ? "● " : "") + "Tab " + (i+1) + " — " + browserTabs.get(i);
             new AlertDialog.Builder(this).setTitle("Các tab").setItems(names, (d,n) -> {
-                browserTabIndex=n; tab.setText("TAB " + (n+1)); browserAddress.setText(browserTabs.get(n)); active.loadUrl(browserTabs.get(n));
+                browserTabIndex=n; saveBrowserProgress(); tab.setText("TAB " + (n+1)); browserAddress.setText(browserTabs.get(n)); active.loadUrl(browserTabs.get(n));
             }).show();
         });
         close.setOnClickListener(v -> {
             if (browserTabs.size()==1) browserTabs.set(0,"https://www.google.com");
             else { browserTabs.remove(browserTabIndex); browserTabIndex=Math.max(0,browserTabIndex-1); }
-            tab.setText("TAB " + (browserTabIndex+1)); browserAddress.setText(browserTabs.get(browserTabIndex)); active.loadUrl(browserTabs.get(browserTabIndex));
+            saveBrowserProgress(); tab.setText("TAB " + (browserTabIndex+1)); browserAddress.setText(browserTabs.get(browserTabIndex)); active.loadUrl(browserTabs.get(browserTabIndex));
         });
         back.setOnClickListener(v -> { if(active.canGoBack()) active.goBack(); });
         forward.setOnClickListener(v -> { if(active.canGoForward()) active.goForward(); });
@@ -1020,6 +1025,48 @@ public class MainActivity extends Activity {
         setContentView(page);
         String target=browserTabs.get(browserTabIndex);
         if (!target.equals(pcWebCurrentUrl) || active.getUrl()==null) active.loadUrl(target);
+    }
+
+
+    private void loadBrowserProgress() {
+        try {
+            SharedPreferences p = getSharedPreferences("gkc_browser_progress", MODE_PRIVATE);
+            String raw = p.getString("tabs", "");
+            if (raw != null && !raw.isEmpty()) {
+                JSONArray a = new JSONArray(raw);
+                for (int i = 0; i < a.length() && browserTabs.size() < 5; i++) {
+                    String u = a.optString(i, "");
+                    if (u.startsWith("http://") || u.startsWith("https://")) browserTabs.add(u);
+                }
+            }
+            browserTabIndex = browserTabs.isEmpty() ? 0 : Math.max(0, Math.min(p.getInt("tab_index", 0), browserTabs.size() - 1));
+        } catch (Exception ignored) {}
+    }
+
+    private void saveBrowserProgress() {
+        try {
+            JSONArray a = new JSONArray();
+            for (int i = 0; i < browserTabs.size() && i < 5; i++) a.put(browserTabs.get(i));
+            getSharedPreferences("gkc_browser_progress", MODE_PRIVATE).edit()
+                .putString("tabs", a.toString())
+                .putInt("tab_index", Math.max(0, browserTabIndex))
+                .apply();
+        } catch (Exception ignored) {}
+    }
+
+    @Override protected void onPause() {
+        saveBrowserProgress();
+        if (pcWebView != null) {
+            try { pcWebView.onPause(); pcWebView.pauseTimers(); } catch (Exception ignored) {}
+        }
+        super.onPause();
+    }
+
+    @Override protected void onResume() {
+        super.onResume();
+        if (pcWebView != null && pcWebView.getParent() != null) {
+            try { pcWebView.onResume(); pcWebView.resumeTimers(); } catch (Exception ignored) {}
+        }
     }
 
     private void showWebErrorPage(WebView web, String detail) {
