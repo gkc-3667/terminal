@@ -1125,7 +1125,7 @@ public class MainActivity extends Activity {
                     if (url != null && url.startsWith("https://discord.com/")) {
                         view.evaluateJavascript("(function(){var m=document.querySelector('meta[name=viewport]');" +
                             "if(!m){m=document.createElement('meta');m.name='viewport';document.head.appendChild(m);}" +
-                            "m.setAttribute('content','width=1200, initial-scale=0.75, maximum-scale=2.0, user-scalable=yes');})();", null);
+                            "m.setAttribute('content','width=device-width, initial-scale=1.0, minimum-scale=0.75, maximum-scale=2.5, user-scalable=yes');})();", null);
                     }
                 }
                 @Override public void onReceivedError(WebView view, android.webkit.WebResourceRequest request,
