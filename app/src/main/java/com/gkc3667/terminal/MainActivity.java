@@ -811,6 +811,63 @@ public class MainActivity extends Activity {
         ScrollView sc = new ScrollView(this);
         LinearLayout list = new LinearLayout(this);
         list.setOrientation(LinearLayout.VERTICAL);
+
+        JSONArray savedApps = getPcApps();
+        if (savedApps.length() > 0) {
+            TextView savedTitle = new TextView(this);
+            savedTitle.setText("ỨNG DỤNG ĐÃ THÊM  •  CHẠM ĐỂ MỞ");
+            savedTitle.setTextColor(Color.WHITE);
+            savedTitle.setTextSize(13);
+            savedTitle.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
+            savedTitle.setPadding(dp(4), dp(4), dp(4), dp(8));
+            list.addView(savedTitle);
+            for (int i = 0; i < savedApps.length(); i++) {
+                JSONObject saved = savedApps.optJSONObject(i);
+                if (saved == null) continue;
+                final String savedId = saved.optString("id");
+                final String savedName = saved.optString("name", "Ứng dụng");
+                final String savedUrl = saved.optString("url", "https://www.google.com");
+                Button savedButton = new Button(this);
+                savedButton.setText("▣  " + savedName + "     MỞ  →");
+                savedButton.setAllCaps(false);
+                savedButton.setTextColor(Color.WHITE);
+                savedButton.setTextSize(15);
+                savedButton.setGravity(Gravity.CENTER_VERTICAL);
+                savedButton.setBackground(neonPanel(Color.rgb(18, 57, 87), Color.rgb(28, 205, 255), 12));
+                LinearLayout.LayoutParams savedLp = new LinearLayout.LayoutParams(-1, dp(52));
+                savedLp.bottomMargin = dp(7);
+                list.addView(savedButton, savedLp);
+                savedButton.setOnClickListener(v -> openPcApp(savedName, savedUrl));
+                savedButton.setOnLongClickListener(v -> {
+                    new AlertDialog.Builder(this).setTitle(savedName)
+                        .setItems(new String[]{"Mở ứng dụng", "Sửa tên / link", "Xóa ứng dụng"}, (dialog, choice) -> {
+                            if (choice == 0) openPcApp(savedName, savedUrl);
+                            else if (choice == 1) showEditPcAppDialog(savedId, savedName, savedUrl);
+                            else if (choice == 2) new AlertDialog.Builder(this)
+                                .setMessage("Xóa " + savedName + " khỏi PC APP?")
+                                .setNegativeButton("HỦY", null)
+                                .setPositiveButton("XÓA", (d, w) -> {
+                                    JSONArray current = getPcApps();
+                                    JSONArray remaining = new JSONArray();
+                                    for (int k = 0; k < current.length(); k++) {
+                                        JSONObject item = current.optJSONObject(k);
+                                        if (item != null && !item.optString("id").equals(savedId)) remaining.put(item);
+                                    }
+                                    savePcApps(remaining);
+                                    showPcAppLibrary();
+                                }).show();
+                        }).show();
+                    return true;
+                });
+            }
+            TextView catalogTitle = new TextView(this);
+            catalogTitle.setText("ỨNG DỤNG CÓ SẴN");
+            catalogTitle.setTextColor(Color.rgb(190, 155, 255));
+            catalogTitle.setTextSize(13);
+            catalogTitle.setTypeface(Typeface.MONOSPACE, Typeface.BOLD);
+            catalogTitle.setPadding(dp(4), dp(12), dp(4), dp(8));
+            list.addView(catalogTitle);
+        }
         for (String[] app : catalog) {
             LinearLayout row = new LinearLayout(this);
             row.setOrientation(LinearLayout.VERTICAL);
