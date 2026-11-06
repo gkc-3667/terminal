@@ -1803,7 +1803,7 @@ public class MainActivity extends Activity {
             writeLine("SSH chưa kết nối.", Color.RED, false); return;
         }
         try {
-            sshRawOut.write((command + "\\r").getBytes("UTF-8"));
+            sshRawOut.write((command + "\r").getBytes("UTF-8"));
             sshRawOut.flush();
             statusLabel.setText("  VPS CONNECTED");
         } catch (Exception e) {
