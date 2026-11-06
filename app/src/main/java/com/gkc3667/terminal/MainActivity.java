@@ -1147,8 +1147,9 @@ public class MainActivity extends Activity {
         nav.setGravity(Gravity.CENTER_VERTICAL);
         nav.setPadding(dp(7), dp(3), dp(7), dp(3));
         nav.setBackgroundColor(Color.rgb(27, 28, 33));
+        Button home = smallButton("⌂");
         Button back = smallButton("←"), forward = smallButton("→"), reload = smallButton("↻");
-        for (Button q : new Button[]{back, forward, reload}) {
+        for (Button q : new Button[]{home, back, forward, reload}) {
             LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(dp(42), dp(34));
             lp.rightMargin = dp(6);
             nav.addView(q, lp);
@@ -1165,8 +1166,10 @@ public class MainActivity extends Activity {
             ws.setDatabaseEnabled(false); ws.setLoadWithOverviewMode(true);
             // Keep WebView lightweight on low-RAM Android devices.
             // Mobile layout avoids downloading/rendering oversized desktop pages.
-            ws.setUseWideViewPort(true); ws.setSupportZoom(false);
-            ws.setBuiltInZoomControls(false); ws.setDisplayZoomControls(false);
+            ws.setUseWideViewPort(true); ws.setSupportZoom(true);
+            ws.setBuiltInZoomControls(true); ws.setDisplayZoomControls(false);
+            // Request desktop websites and fit their wide layout to the available screen.
+            ws.setUserAgentString("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36");
             ws.setMediaPlaybackRequiresUserGesture(true);
             ws.setLoadsImagesAutomatically(true); ws.setCacheMode(WebSettings.LOAD_DEFAULT);
             ws.setJavaScriptCanOpenWindowsAutomatically(false);
@@ -1211,6 +1214,7 @@ public class MainActivity extends Activity {
                 goTo.run(); return true;
             } return false;
         });
+        home.setOnClickListener(v -> showPcAppLibrary());
         back.setOnClickListener(v -> { if (active.canGoBack()) active.goBack(); });
         forward.setOnClickListener(v -> { if (active.canGoForward()) active.goForward(); });
         reload.setOnClickListener(v -> active.reload());
