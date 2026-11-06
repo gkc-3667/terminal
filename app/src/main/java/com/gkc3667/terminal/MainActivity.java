@@ -445,7 +445,7 @@ public class MainActivity extends Activity {
         robot.setTextSize(wide ? 66 : 54);
         robot.setGravity(Gravity.CENTER);
         robot.setBackground(round(Color.rgb(75, 24, 150), 50));
-        robot.setElevation(dp(12));
+        robot.setElevation(0);
         hero.addView(robot, new LinearLayout.LayoutParams(dp(wide ? 124 : 91), dp(wide ? 124 : 91)));
         LinearLayout.LayoutParams heroLp = new LinearLayout.LayoutParams(-1, -2);
         heroLp.bottomMargin = dp(10); main.addView(hero, heroLp);
@@ -812,7 +812,7 @@ public class MainActivity extends Activity {
             add.setMinHeight(dp(78));
             add.setPadding(dp(12), dp(12), dp(12), dp(12));
             add.setBackground(neonPanel(Color.rgb(105, 54, 201), Color.rgb(172, 125, 255), 13));
-            add.setElevation(dp(3));
+            add.setElevation(0);
             LinearLayout.LayoutParams addLp = new LinearLayout.LayoutParams(-1, dp(78));
             addLp.topMargin = dp(12);
             row.addView(add, addLp);
@@ -829,7 +829,7 @@ public class MainActivity extends Activity {
         custom.setGravity(Gravity.CENTER);
         custom.setMinHeight(dp(76));
         custom.setBackground(neonPanel(Color.rgb(112, 58, 220), Color.rgb(190, 145, 255), 15));
-        custom.setElevation(dp(4));
+        custom.setElevation(0);
         LinearLayout.LayoutParams customLp = new LinearLayout.LayoutParams(-1, dp(76));
         customLp.topMargin = dp(10);
         page.addView(custom, customLp);
@@ -897,7 +897,141 @@ public class MainActivity extends Activity {
     }
 
 
-    private void showPcAppLibrary() { openPcApp("Chrome", "https://www.google.com"); }
+    private void showPcAppLibrary() { showPcDesktop(); }
+
+    private void showPcDesktop() {
+        final int desktop = Color.rgb(17, 83, 132);
+        LinearLayout root = new LinearLayout(this);
+        root.setOrientation(LinearLayout.VERTICAL);
+        root.setPadding(dp(10), dp(9), dp(10), dp(8));
+        root.setBackgroundColor(desktop);
+
+        LinearLayout top = new LinearLayout(this);
+        top.setGravity(Gravity.CENTER_VERTICAL);
+        top.setPadding(dp(10), dp(7), dp(10), dp(7));
+        top.setBackground(round(Color.rgb(13, 55, 91), 10));
+        TextView title = new TextView(this);
+        title.setText("▦  GKC DESKTOP");
+        title.setTextColor(Color.WHITE);
+        title.setTextSize(18);
+        title.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
+        top.addView(title, new LinearLayout.LayoutParams(0, dp(42), 1));
+        Button home = smallButton("⌂");
+        home.setTextColor(Color.WHITE);
+        home.setOnClickListener(v -> showHomeDashboard());
+        top.addView(home, new LinearLayout.LayoutParams(dp(42), dp(42)));
+        root.addView(top);
+
+        ScrollView sc = new ScrollView(this);
+        sc.setFillViewport(true);
+        sc.setVerticalScrollBarEnabled(false);
+        LinearLayout icons = new LinearLayout(this);
+        icons.setOrientation(LinearLayout.VERTICAL);
+        icons.setPadding(dp(4), dp(12), dp(4), dp(12));
+        sc.addView(icons);
+        root.addView(sc, new LinearLayout.LayoutParams(-1, 0, 1));
+
+        LinearLayout row1 = new LinearLayout(this);
+        row1.setGravity(Gravity.TOP);
+        addDesktopIcon(row1, "🌐", "Trình duyệt", () -> openPcApp("Chrome", "https://www.google.com"));
+        addDesktopIcon(row1, "📁", "Ứng dụng", () -> showAddPcAppDialog());
+        addDesktopIcon(row1, "›_", "Terminal", () -> setContentView(terminalRoot));
+        addDesktopIcon(row1, "⇄", "SSH / VPS", () -> showSshPage());
+        icons.addView(row1);
+
+        JSONArray savedApps = getPcApps();
+        if (savedApps.length() > 0) {
+            TextView label = new TextView(this);
+            label.setText("ỨNG DỤNG CỦA BẠN");
+            label.setTextColor(Color.WHITE);
+            label.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
+            label.setTextSize(13);
+            label.setPadding(dp(5), dp(16), dp(5), dp(7));
+            icons.addView(label);
+            LinearLayout appRow = new LinearLayout(this);
+            appRow.setGravity(Gravity.TOP);
+            for (int i = 0; i < savedApps.length(); i++) {
+                JSONObject app = savedApps.optJSONObject(i);
+                if (app == null) continue;
+                final String appName = app.optString("name", "Ứng dụng");
+                final String appUrl = app.optString("url", "https://www.google.com");
+                addDesktopIcon(appRow, "▣", appName, () -> openPcApp(appName, appUrl));
+                if (appRow.getChildCount() == 4) {
+                    icons.addView(appRow);
+                    appRow = new LinearLayout(this);
+                    appRow.setGravity(Gravity.TOP);
+                }
+            }
+            if (appRow.getChildCount() > 0) icons.addView(appRow);
+        }
+
+        LinearLayout taskbar = new LinearLayout(this);
+        taskbar.setGravity(Gravity.CENTER_VERTICAL);
+        taskbar.setPadding(dp(7), dp(5), dp(7), dp(5));
+        taskbar.setBackground(round(Color.rgb(12, 39, 65), 12));
+        Button start = smallButton("⊞  BẮT ĐẦU");
+        start.setTextColor(Color.WHITE);
+        start.setOnClickListener(v -> {
+            String[] items = {"Trình duyệt", "Thêm ứng dụng", "Terminal", "SSH / VPS", "Cửa hàng Play"};
+            new AlertDialog.Builder(this).setTitle("GKC Desktop").setItems(items, (d, which) -> {
+                if (which == 0) openPcApp("Chrome", "https://www.google.com");
+                else if (which == 1) showAddPcAppDialog();
+                else if (which == 2) setContentView(terminalRoot);
+                else if (which == 3) showSshPage();
+                else openPlayStore();
+            }).show();
+        });
+        taskbar.addView(start, new LinearLayout.LayoutParams(-2, dp(42)));
+        TextView status = new TextView(this);
+        status.setText("  GKC PC  •  ANDROID");
+        status.setTextColor(Color.rgb(220, 238, 255));
+        status.setTextSize(12);
+        taskbar.addView(status, new LinearLayout.LayoutParams(0, -2, 1));
+        Button store = smallButton("▶");
+        store.setTextColor(Color.WHITE);
+        store.setOnClickListener(v -> openPlayStore());
+        taskbar.addView(store, new LinearLayout.LayoutParams(dp(42), dp(42)));
+        LinearLayout.LayoutParams taskLp = new LinearLayout.LayoutParams(-1, -2);
+        taskLp.topMargin = dp(5);
+        root.addView(taskbar, taskLp);
+        setContentView(root);
+    }
+
+    private void addDesktopIcon(LinearLayout parent, String symbol, String label, Runnable action) {
+        LinearLayout item = new LinearLayout(this);
+        item.setOrientation(LinearLayout.VERTICAL);
+        item.setGravity(Gravity.CENTER);
+        item.setPadding(dp(3), dp(5), dp(3), dp(5));
+        TextView icon = new TextView(this);
+        icon.setText(symbol);
+        icon.setTextColor(Color.WHITE);
+        icon.setTextSize(28);
+        icon.setGravity(Gravity.CENTER);
+        icon.setBackground(round(Color.rgb(22, 104, 157), 12));
+        item.addView(icon, new LinearLayout.LayoutParams(dp(54), dp(50)));
+        TextView name = new TextView(this);
+        name.setText(label);
+        name.setTextColor(Color.WHITE);
+        name.setTextSize(11);
+        name.setGravity(Gravity.CENTER);
+        name.setMaxLines(2);
+        item.addView(name, new LinearLayout.LayoutParams(-1, dp(34)));
+        item.setOnClickListener(v -> action.run());
+        parent.addView(item, new LinearLayout.LayoutParams(0, -2, 1));
+    }
+
+    private void openPlayStore() {
+        try {
+            Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=com.android.chrome"));
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            startActivity(intent);
+        } catch (Exception e) {
+            try { startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse("https://play.google.com/store/apps"))); }
+            catch (Exception ignored) {
+                new AlertDialog.Builder(this).setMessage("Không tìm thấy cửa hàng ứng dụng trên thiết bị.").setPositiveButton("OK", null).show();
+            }
+        }
+    }
 
     private void openPcApp(String appName, String appUrl) {
         if (browserTabs.isEmpty()) browserTabs.add(appUrl);
@@ -937,14 +1071,21 @@ public class MainActivity extends Activity {
         plus.setTextColor(Color.WHITE);
         plus.setTextSize(13);
         plus.setBackground(round(Color.rgb(49, 104, 190), 9));
-        tabActions.addView(plus, new LinearLayout.LayoutParams(-1, dp(38)));
+        Button close = smallButton("×  XÓA THẺ");
+        close.setTextColor(Color.WHITE);
+        close.setTextSize(13);
+        close.setBackground(round(Color.rgb(145, 48, 65), 9));
+        LinearLayout.LayoutParams tabActionLp = new LinearLayout.LayoutParams(0, dp(38), 1);
+        tabActionLp.rightMargin = dp(5);
+        tabActions.addView(plus, tabActionLp);
+        tabActions.addView(close, new LinearLayout.LayoutParams(0, dp(38), 1));
         page.addView(tabActions);
         LinearLayout nav = new LinearLayout(this);
         nav.setGravity(Gravity.CENTER_VERTICAL);
         nav.setPadding(dp(5), dp(3), dp(5), dp(3));
         nav.setBackgroundColor(Color.rgb(27, 28, 33));
-        Button back = smallButton("←"), forward = smallButton("→"), reload = smallButton("↻"), close = smallButton("×");
-        for (Button q : new Button[]{back, forward, reload, close}) {
+        Button back = smallButton("←"), forward = smallButton("→"), reload = smallButton("↻");
+        for (Button q : new Button[]{back, forward, reload}) {
             LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(dp(42), dp(34));
             lp.rightMargin = dp(5); nav.addView(q, lp);
         }
