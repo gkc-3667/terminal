@@ -1537,6 +1537,13 @@ public class MainActivity extends Activity {
             else showSshDialog();
         });
         body.addView(hero);
+        Button profiles = smallButton("▤  QUẢN LÝ HỒ SƠ VPS");
+        profiles.setTextColor(Color.WHITE);
+        profiles.setBackground(round(Color.rgb(63, 78, 150), 10));
+        LinearLayout.LayoutParams profilesLp = new LinearLayout.LayoutParams(-1, dp(43));
+        profilesLp.topMargin = dp(9);
+        body.addView(profiles, profilesLp);
+        profiles.setOnClickListener(v -> showSshProfiles());
 
         LinearLayout status = new LinearLayout(this);
         status.setOrientation(LinearLayout.VERTICAL);
@@ -1625,13 +1632,85 @@ public class MainActivity extends Activity {
                     key.getText().toString(), phrase.getText().toString(), mode.getSelectedItemPosition());
             });
             dialog.getButton(AlertDialog.BUTTON_NEUTRAL).setOnClickListener(v -> {
-                sshPrefs.edit().putString("last_host", host.getText().toString().trim())
-                    .putString("last_port", port.getText().toString().trim())
-                    .putString("last_user", user.getText().toString().trim()).apply();
-                Toast.makeText(this, "Đã lưu hồ sơ máy chủ (không lưu mật khẩu/key).", Toast.LENGTH_SHORT).show();
+                String savedHost = host.getText().toString().trim();
+                String savedPort = port.getText().toString().trim();
+                String savedUser = user.getText().toString().trim();
+                if (savedHost.isEmpty() || savedUser.isEmpty()) {
+                    host.setError("Nhập Host/IP"); user.setError("Nhập username"); return;
+                }
+                saveSshProfile(savedHost, savedPort, savedUser);
+                sshPrefs.edit().putString("last_host", savedHost).putString("last_port", savedPort)
+                    .putString("last_user", savedUser).apply();
+                Toast.makeText(this, "Đã lưu hồ sơ VPS. Mật khẩu/SSH key không được lưu.", Toast.LENGTH_SHORT).show();
             });
         });
         dialog.show();
+    }
+
+    private void saveSshProfile(String host, String port, String user) {
+        SharedPreferences prefs = getSharedPreferences("gkc_ssh_profiles", MODE_PRIVATE);
+        JSONArray list;
+        try { list = new JSONArray(prefs.getString("profiles", "[]")); }
+        catch (Exception e) { list = new JSONArray(); }
+        JSONArray next = new JSONArray();
+        boolean replaced = false;
+        for (int i = 0; i < list.length(); i++) {
+            JSONObject item = list.optJSONObject(i);
+            if (item == null) continue;
+            if (host.equals(item.optString("host")) && port.equals(item.optString("port")) && user.equals(item.optString("user"))) {
+                if (!replaced) {
+                    JSONObject updated = new JSONObject();
+                    try { updated.put("host", host); updated.put("port", port); updated.put("user", user); } catch (Exception ignored) {}
+                    next.put(updated); replaced = true;
+                }
+            } else next.put(item);
+        }
+        if (!replaced) {
+            JSONObject item = new JSONObject();
+            try { item.put("host", host); item.put("port", port); item.put("user", user); } catch (Exception ignored) {}
+            next.put(item);
+        }
+        prefs.edit().putString("profiles", next.toString()).apply();
+    }
+
+    private void showSshProfiles() {
+        SharedPreferences prefs = getSharedPreferences("gkc_ssh_profiles", MODE_PRIVATE);
+        JSONArray list;
+        try { list = new JSONArray(prefs.getString("profiles", "[]")); }
+        catch (Exception e) { list = new JSONArray(); }
+        ArrayList<JSONObject> entries = new ArrayList<>();
+        ArrayList<String> labels = new ArrayList<>();
+        for (int i = 0; i < list.length(); i++) {
+            JSONObject item = list.optJSONObject(i);
+            if (item == null) continue;
+            entries.add(item);
+            labels.add(item.optString("user", "root") + " @ " + item.optString("host") + ":" + item.optString("port", "22"));
+        }
+        if (entries.isEmpty()) {
+            new AlertDialog.Builder(this).setTitle("Hồ sơ VPS")
+                .setMessage("Chưa có hồ sơ nào. Mở Thiết lập SSH rồi chọn Lưu hồ sơ.")
+                .setPositiveButton("OK", null).show();
+            return;
+        }
+        new AlertDialog.Builder(this).setTitle("Chọn hồ sơ VPS")
+            .setItems(labels.toArray(new String[0]), (d, which) -> {
+                JSONObject item = entries.get(which);
+                String h = item.optString("host"), p = item.optString("port", "22"), u = item.optString("user", "root");
+                new AlertDialog.Builder(this).setTitle("Hồ sơ VPS")
+                    .setMessage(labels.get(which) + "\\nMật khẩu và SSH key cần nhập lại khi kết nối.")
+                    .setPositiveButton("Kết nối", (x, w) -> {
+                        prefs.edit().putString("last_host", h).putString("last_port", p).putString("last_user", u).apply();
+                        showSshDialog();
+                    })
+                    .setNeutralButton("Xóa hồ sơ", (x, w) -> {
+                        JSONArray remaining = new JSONArray();
+                        for (int i = 0; i < entries.size(); i++) if (i != which) remaining.put(entries.get(i));
+                        prefs.edit().putString("profiles", remaining.toString()).apply();
+                        Toast.makeText(this, "Đã xóa hồ sơ VPS.", Toast.LENGTH_SHORT).show();
+                        showSshProfiles();
+                    })
+                    .setNegativeButton("Đóng", null).show();
+            }).show();
     }
 
     private void addFormField(LinearLayout parent, String label, View inputView) {
