@@ -36,6 +36,8 @@ import android.webkit.WebView;
 import android.webkit.WebSettings;
 import android.webkit.WebViewClient;
 import android.webkit.WebChromeClient;
+import androidx.webkit.WebViewCompat;
+import androidx.webkit.WebViewFeature;
 import android.app.Dialog;
 import android.text.InputType;
 import com.chaquo.python.Python;
@@ -77,6 +79,7 @@ public class MainActivity extends Activity {
     private volatile boolean busy = false;
     // Keep one Chromium view alive during this app session for faster app switching.
     private WebView pcWebView;
+    private String pcWebProfile = "";
     private String pcWebCurrentUrl = "";
     private final ArrayList<String> browserTabs = new ArrayList<>();
     private int browserTabIndex = 0;
@@ -743,8 +746,15 @@ public class MainActivity extends Activity {
     private void addPcApp(String name, String url) {
         try {
             JSONArray apps = getPcApps();
+            String baseName = name.trim();
+            int duplicateCount = 0;
+            for (int i = 0; i < apps.length(); i++) {
+                JSONObject existing = apps.optJSONObject(i);
+                if (existing != null && baseName.equalsIgnoreCase(existing.optString("name", ""))) duplicateCount++;
+            }
+            String displayName = duplicateCount == 0 ? baseName : baseName + " (" + duplicateCount + ")";
             JSONObject item = new JSONObject();
-            item.put("name", name.trim());
+            item.put("name", displayName);
             item.put("url", url.trim());
             item.put("id", System.currentTimeMillis() + "_" + apps.length());
             apps.put(item);
@@ -837,11 +847,11 @@ public class MainActivity extends Activity {
                 LinearLayout.LayoutParams savedLp = new LinearLayout.LayoutParams(-1, dp(52));
                 savedLp.bottomMargin = dp(7);
                 list.addView(savedButton, savedLp);
-                savedButton.setOnClickListener(v -> openPcApp(savedName, savedUrl));
+                savedButton.setOnClickListener(v -> openPcApp(savedId, savedName, savedUrl));
                 savedButton.setOnLongClickListener(v -> {
                     new AlertDialog.Builder(this).setTitle(savedName)
                         .setItems(new String[]{"Mở ứng dụng", "Sửa tên / link", "Xóa ứng dụng"}, (dialog, choice) -> {
-                            if (choice == 0) openPcApp(savedName, savedUrl);
+                            if (choice == 0) openPcApp(savedId, savedName, savedUrl);
                             else if (choice == 1) showEditPcAppDialog(savedId, savedName, savedUrl);
                             else if (choice == 2) new AlertDialog.Builder(this)
                                 .setMessage("Xóa " + savedName + " khỏi PC APP?")
@@ -1037,7 +1047,7 @@ public class MainActivity extends Activity {
                 if (app == null) continue;
                 final String appName = app.optString("name", "Ứng dụng");
                 final String appUrl = app.optString("url", "https://www.google.com");
-                addDesktopIcon(appRow, "▣", appName, () -> openPcApp(appName, appUrl));
+                addDesktopIcon(appRow, "▣", appName, () -> openPcApp(app.optString("id"), appName, appUrl));
                 if (appRow.getChildCount() == 4) {
                     icons.addView(appRow);
                     appRow = new LinearLayout(this);
@@ -1117,12 +1127,11 @@ public class MainActivity extends Activity {
 
     // Open the built-in GKC browser inside the PC desktop; never launch the device's Chrome app.
     private void launchChrome() {
-        openPcApp("Chrome", "https://www.google.com");
+        openPcApp("builtin_chrome", "Chrome", "https://www.google.com");
     }
 
-    private void openPcApp(String appName, String appUrl) {
-        if (browserTabs.isEmpty()) browserTabs.add(appUrl);
-        else if (appUrl != null && !appUrl.equals(pcWebCurrentUrl)) browserTabs.set(browserTabIndex, appUrl);
+    private void openPcApp(String appId, String appName, String appUrl) {
+        String profileName = "gkc_" + (appId == null ? "unknown" : appId.replaceAll("[^A-Za-z0-9_-]", "_"));
 
         LinearLayout page = new LinearLayout(this);
         page.setOrientation(LinearLayout.VERTICAL);
@@ -1150,9 +1159,37 @@ public class MainActivity extends Activity {
         page.addView(nav, new LinearLayout.LayoutParams(-1, dp(34)));
 
         WebView web = pcWebView;
+        if (web != null && !profileName.equals(pcWebProfile)) {
+            try {
+                if (web.getParent() instanceof ViewGroup) ((ViewGroup) web.getParent()).removeView(web);
+                web.stopLoading();
+                web.destroy();
+            } catch (Exception ignored) {}
+            pcWebView = null;
+            pcWebProfile = "";
+            web = null;
+        }
         if (web == null) {
+            if (!WebViewFeature.isFeatureSupported(WebViewFeature.MULTI_PROFILE)) {
+                new AlertDialog.Builder(this).setTitle("Cần cập nhật Android System WebView")
+                    .setMessage("Thiết bị chưa hỗ trợ hồ sơ trình duyệt riêng. Hãy cập nhật Android System WebView/Chrome trong CH Play. Ứng dụng sẽ không mở bằng hồ sơ dùng chung để tránh lẫn tài khoản.")
+                    .setPositiveButton("OK", null).show();
+                showPcAppLibrary();
+                return;
+            }
             web = new WebView(this);
+            try {
+                WebViewCompat.setProfile(web, profileName);
+            } catch (Exception profileError) {
+                web.destroy();
+                new AlertDialog.Builder(this).setTitle("Không tạo được hồ sơ riêng")
+                    .setMessage("Android System WebView chưa hỗ trợ hoặc không tạo được hồ sơ riêng. Hãy cập nhật Android System WebView/Chrome.")
+                    .setPositiveButton("OK", null).show();
+                showPcAppLibrary();
+                return;
+            }
             pcWebView = web;
+            pcWebProfile = profileName;
             web.setFocusable(true);
             web.setFocusableInTouchMode(true);
             web.setOverScrollMode(View.OVER_SCROLL_NEVER);
@@ -1181,9 +1218,9 @@ public class MainActivity extends Activity {
             ws.setJavaScriptCanOpenWindowsAutomatically(false);
             if (Build.VERSION.SDK_INT >= 21) {
                 ws.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW);
-                android.webkit.CookieManager.getInstance().setAcceptThirdPartyCookies(web, true);
+                WebViewCompat.getProfile(web).getCookieManager().setAcceptThirdPartyCookies(web, true);
             }
-            android.webkit.CookieManager.getInstance().setAcceptCookie(true);
+            WebViewCompat.getProfile(web).getCookieManager().setAcceptCookie(true);
             web.setWebViewClient(new WebViewClient() {
                 @Override public void onPageFinished(WebView v, String url) {
                     pcWebCurrentUrl = url == null ? "" : url;
@@ -1219,10 +1256,8 @@ public class MainActivity extends Activity {
         reload.setOnClickListener(v -> active.reload());
 
         setContentView(page);
-        String target = browserTabs.get(browserTabIndex);
-        if (!target.equals(pcWebCurrentUrl) || active.getUrl() == null) {
-            active.loadUrl(target);
-        }
+        String target = appUrl == null || appUrl.trim().isEmpty() ? "https://www.google.com" : appUrl.trim();
+        if (!target.equals(pcWebCurrentUrl) || active.getUrl() == null) active.loadUrl(target);
     }
 
     private void loadBrowserProgress() {
@@ -1291,7 +1326,7 @@ public class MainActivity extends Activity {
     }
 
     private void openDiscordPc() {
-        openPcApp("Discord PC", "https://discord.com/app");
+        openPcApp("builtin_discord", "Discord PC", "https://discord.com/app");
     }
 
     private void openPcApps() {
