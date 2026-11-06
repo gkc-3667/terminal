@@ -1126,55 +1126,32 @@ public class MainActivity extends Activity {
         LinearLayout page = new LinearLayout(this);
         page.setOrientation(LinearLayout.VERTICAL);
         page.setBackgroundColor(Color.rgb(20, 21, 25));
+        // Minimal browser controls: address field plus only back, forward and reload.
         LinearLayout bar = new LinearLayout(this);
         bar.setGravity(Gravity.CENTER_VERTICAL);
-        bar.setPadding(dp(5), dp(5), dp(5), dp(5));
+        bar.setPadding(dp(7), dp(6), dp(7), dp(6));
         bar.setBackgroundColor(Color.rgb(34, 35, 41));
-        Button home = smallButton("⌂");
-        Button tab = smallButton("TAB " + (browserTabIndex + 1));
-        Button plus = smallButton("+");
-        bar.addView(home, new LinearLayout.LayoutParams(dp(40), dp(40)));
-        bar.addView(tab, new LinearLayout.LayoutParams(-2, dp(40)));
         browserAddress = new EditText(this);
         browserAddress.setSingleLine(true);
         browserAddress.setTextColor(Color.WHITE);
         browserAddress.setHintTextColor(Color.LTGRAY);
         browserAddress.setHint("Tìm kiếm hoặc nhập địa chỉ");
         browserAddress.setTextSize(14);
-        browserAddress.setPadding(dp(10), 0, dp(8), 0);
-        browserAddress.setBackground(round(Color.rgb(57, 59, 67), 20));
+        browserAddress.setPadding(dp(12), 0, dp(10), 0);
+        browserAddress.setBackground(round(Color.rgb(57, 59, 67), 18));
         browserAddress.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_URI);
         browserAddress.setImeOptions(EditorInfo.IME_ACTION_GO);
-        LinearLayout.LayoutParams addrLp = new LinearLayout.LayoutParams(0, dp(40), 1);
-        addrLp.setMargins(dp(5), 0, dp(5), 0);
-        bar.addView(browserAddress, addrLp);
-        Button go = smallButton("ĐI");
-        bar.addView(go, new LinearLayout.LayoutParams(dp(42), dp(40)));
+        bar.addView(browserAddress, new LinearLayout.LayoutParams(-1, dp(40)));
         page.addView(bar);
-        LinearLayout tabActions = new LinearLayout(this);
-        tabActions.setPadding(dp(6), dp(4), dp(6), dp(4));
-        tabActions.setBackgroundColor(Color.rgb(27, 28, 33));
-        plus.setText("＋  THÊM THẺ");
-        plus.setTextColor(Color.WHITE);
-        plus.setTextSize(13);
-        plus.setBackground(round(Color.rgb(49, 104, 190), 9));
-        Button close = smallButton("×  XÓA THẺ");
-        close.setTextColor(Color.WHITE);
-        close.setTextSize(13);
-        close.setBackground(round(Color.rgb(145, 48, 65), 9));
-        LinearLayout.LayoutParams tabActionLp = new LinearLayout.LayoutParams(0, dp(38), 1);
-        tabActionLp.rightMargin = dp(5);
-        tabActions.addView(plus, tabActionLp);
-        tabActions.addView(close, new LinearLayout.LayoutParams(0, dp(38), 1));
-        page.addView(tabActions);
         LinearLayout nav = new LinearLayout(this);
         nav.setGravity(Gravity.CENTER_VERTICAL);
-        nav.setPadding(dp(5), dp(3), dp(5), dp(3));
+        nav.setPadding(dp(7), dp(3), dp(7), dp(3));
         nav.setBackgroundColor(Color.rgb(27, 28, 33));
         Button back = smallButton("←"), forward = smallButton("→"), reload = smallButton("↻");
         for (Button q : new Button[]{back, forward, reload}) {
             LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(dp(42), dp(34));
-            lp.rightMargin = dp(5); nav.addView(q, lp);
+            lp.rightMargin = dp(6);
+            nav.addView(q, lp);
         }
         page.addView(nav);
         WebView web = pcWebView;
@@ -1234,28 +1211,8 @@ public class MainActivity extends Activity {
                 goTo.run(); return true;
             } return false;
         });
-        go.setOnClickListener(v -> goTo.run());
-        home.setOnClickListener(v -> { browserTabs.set(browserTabIndex, "https://www.google.com"); saveBrowserProgress(); active.loadUrl("https://www.google.com"); });
-        plus.setOnClickListener(v -> {
-            if (browserTabs.size() >= 5) { new AlertDialog.Builder(this).setMessage("Để máy đỡ lag, GKC APP giới hạn tối đa 5 tab. Hãy đóng tab không dùng nhé.").setPositiveButton("OK", null).show(); return; }
-            browserTabs.add("https://www.google.com"); browserTabIndex = browserTabs.size() - 1; saveBrowserProgress();
-            tab.setText("TAB " + (browserTabIndex + 1)); browserAddress.setText(browserTabs.get(browserTabIndex));
-            active.loadUrl(browserTabs.get(browserTabIndex));
-        });
-        tab.setOnClickListener(v -> {
-            String[] names = new String[browserTabs.size()];
-            for (int i=0;i<names.length;i++) names[i] = (i==browserTabIndex ? "● " : "") + "Tab " + (i+1) + " — " + browserTabs.get(i);
-            new AlertDialog.Builder(this).setTitle("Các tab").setItems(names, (d,n) -> {
-                browserTabIndex=n; saveBrowserProgress(); tab.setText("TAB " + (n+1)); browserAddress.setText(browserTabs.get(n)); active.loadUrl(browserTabs.get(n));
-            }).show();
-        });
-        close.setOnClickListener(v -> {
-            if (browserTabs.size()==1) browserTabs.set(0,"https://www.google.com");
-            else { browserTabs.remove(browserTabIndex); browserTabIndex=Math.max(0,browserTabIndex-1); }
-            saveBrowserProgress(); tab.setText("TAB " + (browserTabIndex+1)); browserAddress.setText(browserTabs.get(browserTabIndex)); active.loadUrl(browserTabs.get(browserTabIndex));
-        });
-        back.setOnClickListener(v -> { if(active.canGoBack()) active.goBack(); });
-        forward.setOnClickListener(v -> { if(active.canGoForward()) active.goForward(); });
+        back.setOnClickListener(v -> { if (active.canGoBack()) active.goBack(); });
+        forward.setOnClickListener(v -> { if (active.canGoForward()) active.goForward(); });
         reload.setOnClickListener(v -> active.reload());
         setContentView(page);
         String target=browserTabs.get(browserTabIndex);
