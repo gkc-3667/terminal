@@ -914,7 +914,6 @@ public class MainActivity extends Activity {
         Button plus = smallButton("+");
         bar.addView(home, new LinearLayout.LayoutParams(dp(40), dp(40)));
         bar.addView(tab, new LinearLayout.LayoutParams(-2, dp(40)));
-        bar.addView(plus, new LinearLayout.LayoutParams(dp(40), dp(40)));
         browserAddress = new EditText(this);
         browserAddress.setSingleLine(true);
         browserAddress.setTextColor(Color.WHITE);
@@ -931,6 +930,15 @@ public class MainActivity extends Activity {
         Button go = smallButton("ĐI");
         bar.addView(go, new LinearLayout.LayoutParams(dp(42), dp(40)));
         page.addView(bar);
+        LinearLayout tabActions = new LinearLayout(this);
+        tabActions.setPadding(dp(6), dp(4), dp(6), dp(4));
+        tabActions.setBackgroundColor(Color.rgb(27, 28, 33));
+        plus.setText("＋  THÊM THẺ");
+        plus.setTextColor(Color.WHITE);
+        plus.setTextSize(13);
+        plus.setBackground(round(Color.rgb(49, 104, 190), 9));
+        tabActions.addView(plus, new LinearLayout.LayoutParams(-1, dp(38)));
+        page.addView(tabActions);
         LinearLayout nav = new LinearLayout(this);
         nav.setGravity(Gravity.CENTER_VERTICAL);
         nav.setPadding(dp(5), dp(3), dp(5), dp(3));
