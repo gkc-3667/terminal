@@ -1845,7 +1845,8 @@ public class MainActivity extends Activity {
     }
 
     private void disconnectSsh() {
-        sshReaderRunning = false;\n        try { if (sshChannel != null) sshChannel.disconnect(); } catch (Exception ignored) {}
+        sshReaderRunning = false;
+        try { if (sshChannel != null) sshChannel.disconnect(); } catch (Exception ignored) {}
         try { if (sshSession != null) sshSession.disconnect(); } catch (Exception ignored) {}
         sshChannel = null; sshSession = null; sshIn = null; sshOut = null; sshRawIn = null; sshRawOut = null; sshConnected = false;
         busy = false;
