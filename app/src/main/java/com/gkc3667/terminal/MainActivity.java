@@ -750,7 +750,7 @@ public class MainActivity extends Activity {
             int duplicateCount = 0;
             for (int i = 0; i < apps.length(); i++) {
                 JSONObject existing = apps.optJSONObject(i);
-                if (existing != null && baseName.equalsIgnoreCase(existing.optString("name", ""))) duplicateCount++;
+                if (existing != null) { String oldName = existing.optString("name", ""); if (baseName.equalsIgnoreCase(oldName) || oldName.matches(java.util.regex.Pattern.quote(baseName) + " \\(\\d+\\)")) duplicateCount++; }
             }
             String displayName = duplicateCount == 0 ? baseName : baseName + " (" + duplicateCount + ")";
             JSONObject item = new JSONObject();
