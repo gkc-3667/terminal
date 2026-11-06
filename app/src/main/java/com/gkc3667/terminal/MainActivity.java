@@ -295,7 +295,8 @@ public class MainActivity extends Activity {
         LinearLayout sshKeys = new LinearLayout(this);
         sshKeys.setGravity(Gravity.CENTER_VERTICAL);
         sshKeys.setOrientation(LinearLayout.HORIZONTAL);
-        String[][] specialKeys = {{"CTRL-C", "\\u0003"}, {"CTRL-D", "\\u0004"}, {"TAB", "\\t"}, {"ESC", "\\u001b"}, {"↑", "\\u001b[A"}, {"↓", "\\u001b[B"}, {"←", "\\u001b[D"}, {"→", "\\u001b[C"}};
+        String esc = new String(new char[]{27});
+        String[][] specialKeys = {{"CTRL-C", new String(new char[]{3})}, {"CTRL-D", new String(new char[]{4})}, {"TAB", "\t"}, {"ESC", esc}, {"↑", esc + "[A"}, {"↓", esc + "[B"}, {"←", esc + "[D"}, {"→", esc + "[C"}};
         for (String[] k : specialKeys) {
             Button keyButton = smallButton(k[0]);
             keyButton.setOnClickListener(v -> sendSshControl(k[1]));
