@@ -1055,26 +1055,9 @@ public class MainActivity extends Activity {
         }
     }
 
-    // Open the real Chrome app so the user gets the tab strip and toolbar shown in the reference video.
+    // Open the built-in GKC browser inside the PC desktop; never launch the device's Chrome app.
     private void launchChrome() {
-        try {
-            Intent chrome = getPackageManager().getLaunchIntentForPackage("com.android.chrome");
-            if (chrome != null) {
-                chrome.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                startActivity(chrome);
-                return;
-            }
-        } catch (Exception ignored) {}
-        try {
-            Intent browser = new Intent(Intent.ACTION_VIEW, Uri.parse("https://www.google.com"));
-            startActivity(Intent.createChooser(browser, "Mở bằng trình duyệt"));
-        } catch (Exception e) {
-            new AlertDialog.Builder(this)
-                .setTitle("Chưa có Chrome")
-                .setMessage("Thiết bị chưa cài hoặc chưa bật Google Chrome. Hãy cài Chrome từ Cửa hàng Play rồi thử lại.")
-                .setPositiveButton("Mở Cửa hàng Play", (d, w) -> openPlayStore())
-                .setNegativeButton("Đóng", null).show();
-        }
+        openPcApp("Chrome", "https://www.google.com");
     }
 
     private void openPcApp(String appName, String appUrl) {
