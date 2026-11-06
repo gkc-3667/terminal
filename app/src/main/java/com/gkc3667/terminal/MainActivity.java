@@ -1095,12 +1095,11 @@ public class MainActivity extends Activity {
             pcWebView = web;
             web.setFocusable(true);
             web.setFocusableInTouchMode(true);
-            web.setLayerType(View.LAYER_TYPE_HARDWARE, null);
             web.setOverScrollMode(View.OVER_SCROLL_NEVER);
             WebSettings settings = web.getSettings();
             settings.setJavaScriptEnabled(true);
             settings.setDomStorageEnabled(true);
-            settings.setDatabaseEnabled(true);
+            settings.setDatabaseEnabled(false);
             settings.setLoadWithOverviewMode(false);
             settings.setUseWideViewPort(true);
             settings.setSupportZoom(true);
@@ -1109,6 +1108,8 @@ public class MainActivity extends Activity {
             settings.setMediaPlaybackRequiresUserGesture(false);
             settings.setLoadsImagesAutomatically(true);
             settings.setCacheMode(WebSettings.LOAD_DEFAULT);
+            settings.setBlockNetworkLoads(false);
+            settings.setLoadsImagesAutomatically(true);
             settings.setJavaScriptCanOpenWindowsAutomatically(true);
             String currentUa = settings.getUserAgentString();
             java.util.regex.Matcher chromeVersion = java.util.regex.Pattern
@@ -1125,7 +1126,7 @@ public class MainActivity extends Activity {
                     if (url != null && url.startsWith("https://discord.com/")) {
                         view.evaluateJavascript("(function(){var m=document.querySelector('meta[name=viewport]');" +
                             "if(!m){m=document.createElement('meta');m.name='viewport';document.head.appendChild(m);}" +
-                            "m.setAttribute('content','width=device-width, initial-scale=1.0, minimum-scale=0.75, maximum-scale=2.5, user-scalable=yes');})();", null);
+                            "m.setAttribute('content','width=device-width, initial-scale=1.0, minimum-scale=0.75, maximum-scale=2.5, user-scalable=yes');var st=document.getElementById('gkc-performance-style');if(!st){st=document.createElement('style');st.id='gkc-performance-style';st.textContent='*,*::before,*::after{scroll-behavior:auto!important;animation-duration:0.01ms!important;animation-iteration-count:1!important;transition-duration:0.01ms!important;}';document.head.appendChild(st);}})();", null);
                     }
                 }
                 @Override public void onReceivedError(WebView view, android.webkit.WebResourceRequest request,
@@ -1272,7 +1273,7 @@ public class MainActivity extends Activity {
             writeLine("Đã mở phiên shell mới.", GREEN, false);
             showPrompt(); return;
         }
-        history.add(cmd);
+        addHistory(cmd);
         historyIndex = history.size();
         writeLine("$ " + cmd, BLUE, true);
         busy = true;
@@ -1331,6 +1332,7 @@ public class MainActivity extends Activity {
                     if (!result.isEmpty()) {
                         output.append(result);
                         if (!result.endsWith("\n")) output.append("\n");
+                        trimOutput();
                     }
                     statusLabel.setText("  PYTHON READY");
                     busy = false;
@@ -1653,6 +1655,12 @@ public class MainActivity extends Activity {
         } else {
             statusLabel.setText("  CLIPBOARD EMPTY");
         }
+    }
+
+    private void addHistory(String command) {
+        history.add(command);
+        if (history.size() > 200) history.remove(0);
+        historyIndex = history.size();
     }
 
     private void trimOutput() {
