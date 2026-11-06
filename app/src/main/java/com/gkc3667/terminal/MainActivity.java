@@ -1123,106 +1123,107 @@ public class MainActivity extends Activity {
     private void openPcApp(String appName, String appUrl) {
         if (browserTabs.isEmpty()) browserTabs.add(appUrl);
         else if (appUrl != null && !appUrl.equals(pcWebCurrentUrl)) browserTabs.set(browserTabIndex, appUrl);
+
         LinearLayout page = new LinearLayout(this);
         page.setOrientation(LinearLayout.VERTICAL);
         page.setBackgroundColor(Color.rgb(20, 21, 25));
-        // Minimal browser controls: address field plus only back, forward and reload.
-        LinearLayout bar = new LinearLayout(this);
-        bar.setGravity(Gravity.CENTER_VERTICAL);
-        bar.setPadding(dp(7), dp(6), dp(7), dp(6));
-        bar.setBackgroundColor(Color.rgb(34, 35, 41));
-        browserAddress = new EditText(this);
-        browserAddress.setSingleLine(true);
-        browserAddress.setTextColor(Color.WHITE);
-        browserAddress.setHintTextColor(Color.LTGRAY);
-        browserAddress.setHint("Tìm kiếm hoặc nhập địa chỉ");
-        browserAddress.setTextSize(14);
-        browserAddress.setPadding(dp(12), 0, dp(10), 0);
-        browserAddress.setBackground(round(Color.rgb(57, 59, 67), 18));
-        browserAddress.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_URI);
-        browserAddress.setImeOptions(EditorInfo.IME_ACTION_GO);
-        bar.addView(browserAddress, new LinearLayout.LayoutParams(-1, dp(40)));
-        page.addView(bar);
+
+        // Compact centered controls; hide the URL/address field to give Discord more room.
         LinearLayout nav = new LinearLayout(this);
-        nav.setGravity(Gravity.CENTER_VERTICAL);
-        nav.setPadding(dp(7), dp(3), dp(7), dp(3));
+        nav.setOrientation(LinearLayout.HORIZONTAL);
+        nav.setGravity(Gravity.CENTER);
+        nav.setPadding(dp(4), dp(2), dp(4), dp(2));
         nav.setBackgroundColor(Color.rgb(27, 28, 33));
+
         Button home = smallButton("⌂");
-        Button back = smallButton("←"), forward = smallButton("→"), reload = smallButton("↻");
+        Button back = smallButton("←");
+        Button forward = smallButton("→");
+        Button reload = smallButton("↻");
         for (Button q : new Button[]{home, back, forward, reload}) {
-            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(dp(42), dp(34));
-            lp.rightMargin = dp(6);
+            q.setTextSize(11);
+            q.setPadding(0, 0, 0, 0);
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(dp(34), dp(29));
+            lp.leftMargin = dp(3);
+            lp.rightMargin = dp(3);
             nav.addView(q, lp);
         }
-        page.addView(nav);
+        page.addView(nav, new LinearLayout.LayoutParams(-1, dp(34)));
+
         WebView web = pcWebView;
         if (web == null) {
-            web = new WebView(this); pcWebView = web;
-            web.setFocusable(true); web.setFocusableInTouchMode(true);
+            web = new WebView(this);
+            pcWebView = web;
+            web.setFocusable(true);
+            web.setFocusableInTouchMode(true);
             web.setOverScrollMode(View.OVER_SCROLL_NEVER);
+            web.setVerticalScrollBarEnabled(false);
+            web.setHorizontalScrollBarEnabled(false);
+            web.setLayerType(View.LAYER_TYPE_HARDWARE, null);
+
             WebSettings ws = web.getSettings();
-            ws.setJavaScriptEnabled(true); ws.setDomStorageEnabled(true);
-            ws.setGeolocationEnabled(false); ws.setSaveFormData(false);
-            ws.setDatabaseEnabled(false); ws.setLoadWithOverviewMode(true);
-            // Keep WebView lightweight on low-RAM Android devices.
-            // Mobile layout avoids downloading/rendering oversized desktop pages.
-            ws.setUseWideViewPort(true); ws.setSupportZoom(true);
-            ws.setBuiltInZoomControls(true); ws.setDisplayZoomControls(false);
-            // Request desktop websites and fit their wide layout to the available screen.
+            ws.setJavaScriptEnabled(true);
+            ws.setDomStorageEnabled(true);
+            ws.setGeolocationEnabled(false);
+            ws.setSaveFormData(false);
+            ws.setDatabaseEnabled(false);
+            ws.setLoadWithOverviewMode(true);
+            ws.setUseWideViewPort(true);
+            ws.setSupportZoom(true);
+            ws.setBuiltInZoomControls(true);
+            ws.setDisplayZoomControls(false);
+            ws.setTextZoom(90);
+            ws.setInitialScale(0);
+            // Request the desktop site while fitting its wide layout to the phone/tablet screen.
             ws.setUserAgentString("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36");
             ws.setMediaPlaybackRequiresUserGesture(true);
-            ws.setLoadsImagesAutomatically(true); ws.setCacheMode(WebSettings.LOAD_DEFAULT);
+            ws.setLoadsImagesAutomatically(true);
+            ws.setCacheMode(WebSettings.LOAD_DEFAULT);
             ws.setJavaScriptCanOpenWindowsAutomatically(false);
             if (Build.VERSION.SDK_INT >= 21) {
                 ws.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW);
                 android.webkit.CookieManager.getInstance().setAcceptThirdPartyCookies(web, true);
             }
             android.webkit.CookieManager.getInstance().setAcceptCookie(true);
-            // Keep Android WebView's native mobile user agent for responsive, lighter pages.
             web.setWebViewClient(new WebViewClient() {
                 @Override public void onPageFinished(WebView v, String url) {
                     pcWebCurrentUrl = url == null ? "" : url;
-                    if (url != null && browserTabIndex >= 0 && browserTabIndex < browserTabs.size()) browserTabs.set(browserTabIndex, url);
+                    if (url != null && browserTabIndex >= 0 && browserTabIndex < browserTabs.size()) {
+                        browserTabs.set(browserTabIndex, url);
+                    }
                     saveBrowserProgress();
-                    if (browserAddress != null && url != null) browserAddress.setText(url);
                 }
-                @Override public void onReceivedError(WebView v, android.webkit.WebResourceRequest req, android.webkit.WebResourceError err) {
+                @Override public void onReceivedError(WebView v, android.webkit.WebResourceRequest req,
+                                                      android.webkit.WebResourceError err) {
                     if (req.isForMainFrame()) showWebErrorPage(v, err.getDescription().toString());
                 }
-                @Override public void onReceivedSslError(WebView v, android.webkit.SslErrorHandler h, android.net.http.SslError e) {
-                    h.cancel(); showWebErrorPage(v, "Chứng chỉ bảo mật không hợp lệ. Kết nối đã bị chặn.");
+                @Override public void onReceivedSslError(WebView v, android.webkit.SslErrorHandler h,
+                                                         android.net.http.SslError e) {
+                    h.cancel();
+                    showWebErrorPage(v, "Chứng chỉ bảo mật không hợp lệ. Kết nối đã bị chặn.");
                 }
             });
             web.setWebChromeClient(new WebChromeClient());
         }
-        if (web.getParent() instanceof ViewGroup) ((ViewGroup)web.getParent()).removeView(web);
-        web.resumeTimers(); web.onResume();
+
+        if (web.getParent() instanceof ViewGroup) {
+            ((ViewGroup) web.getParent()).removeView(web);
+        }
+        web.resumeTimers();
+        web.onResume();
         page.addView(web, new LinearLayout.LayoutParams(-1, 0, 1));
+
         final WebView active = web;
-        Runnable goTo = () -> {
-            String q = browserAddress.getText().toString().trim();
-            if (q.isEmpty()) return;
-            String url;
-            if (q.matches("(?i)^https?://.*")) url = q;
-            else if (q.matches("(?i)^[a-z0-9.-]+\\.[a-z]{2,}(/.*)?$")) url = "https://" + q;
-            else url = "https://www.google.com/search?q=" + Uri.encode(q);
-            browserTabs.set(browserTabIndex, url); saveBrowserProgress(); active.loadUrl(url); browserAddress.clearFocus();
-        };
-        browserAddress.setText(browserTabs.get(browserTabIndex));
-        browserAddress.setOnEditorActionListener((v, action, event) -> {
-            if (action == EditorInfo.IME_ACTION_GO || (event != null && event.getKeyCode() == KeyEvent.KEYCODE_ENTER)) {
-                goTo.run(); return true;
-            } return false;
-        });
         home.setOnClickListener(v -> showPcAppLibrary());
         back.setOnClickListener(v -> { if (active.canGoBack()) active.goBack(); });
         forward.setOnClickListener(v -> { if (active.canGoForward()) active.goForward(); });
         reload.setOnClickListener(v -> active.reload());
-        setContentView(page);
-        String target=browserTabs.get(browserTabIndex);
-        if (!target.equals(pcWebCurrentUrl) || active.getUrl()==null) active.loadUrl(target);
-    }
 
+        setContentView(page);
+        String target = browserTabs.get(browserTabIndex);
+        if (!target.equals(pcWebCurrentUrl) || active.getUrl() == null) {
+            active.loadUrl(target);
+        }
+    }
 
     private void loadBrowserProgress() {
         try {
