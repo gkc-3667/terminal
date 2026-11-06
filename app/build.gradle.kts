@@ -20,6 +20,7 @@ android {
 
 dependencies {
     implementation("com.github.mwiede:jsch:0.2.20")
+    implementation("androidx.webkit:webkit:1.9.0")
 }
 
 chaquopy {
