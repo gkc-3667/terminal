@@ -1149,11 +1149,14 @@ public class MainActivity extends Activity {
         if (web.getParent() instanceof ViewGroup) {
             ((ViewGroup) web.getParent()).removeView(web);
         }
+        // Resume Chromium timers only while the PC app screen is being shown.
+        web.resumeTimers();
         web.onResume();
         page.addView(web, new LinearLayout.LayoutParams(-1, 0, 1));
         final WebView activeWeb = web;
         library.setOnClickListener(v -> {
             activeWeb.onPause();
+            activeWeb.pauseTimers();
             android.webkit.CookieManager.getInstance().flush();
             if (activeWeb.getParent() instanceof ViewGroup) {
                 ((ViewGroup) activeWeb.getParent()).removeView(activeWeb);
@@ -1659,13 +1662,13 @@ public class MainActivity extends Activity {
 
     private void addHistory(String command) {
         history.add(command);
-        if (history.size() > 200) history.remove(0);
+        if (history.size() > 100) history.remove(0);
         historyIndex = history.size();
     }
 
     private void trimOutput() {
         // Keep the most recent terminal output so long sessions do not grow without bound.
-        int maxChars = 14000;
+        int maxChars = 9000;
         if (output.length() > maxChars) {
             int remove = output.length() - maxChars;
             int newline = output.getText().toString().indexOf('\n', remove);
