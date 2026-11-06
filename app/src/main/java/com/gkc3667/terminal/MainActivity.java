@@ -1054,7 +1054,29 @@ public class MainActivity extends Activity {
         }
     }
 
-    // Open the real Chrome app so the user gets the tab strip and toolbar shown in the reference video.\n    private void launchChrome() {\n        try {\n            Intent chrome = getPackageManager().getLaunchIntentForPackage("com.android.chrome");\n            if (chrome != null) {\n                chrome.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);\n                startActivity(chrome);\n                return;\n            }\n        } catch (Exception ignored) {}\n        try {\n            Intent browser = new Intent(Intent.ACTION_VIEW, Uri.parse("https://www.google.com"));\n            startActivity(Intent.createChooser(browser, "Mở bằng trình duyệt"));\n        } catch (Exception e) {\n            new AlertDialog.Builder(this)\n                .setTitle("Chưa có Chrome")\n                .setMessage("Thiết bị chưa cài hoặc chưa bật Google Chrome. Hãy cài Chrome từ Cửa hàng Play rồi thử lại.")\n                .setPositiveButton("Mở Cửa hàng Play", (d, w) -> openPlayStore())\n                .setNegativeButton("Đóng", null).show();\n        }\n    }\n\n    private void openPcApp(String appName, String appUrl) {
+    // Open the real Chrome app so the user gets the tab strip and toolbar shown in the reference video.
+    private void launchChrome() {
+        try {
+            Intent chrome = getPackageManager().getLaunchIntentForPackage("com.android.chrome");
+            if (chrome != null) {
+                chrome.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                startActivity(chrome);
+                return;
+            }
+        } catch (Exception ignored) {}
+        try {
+            Intent browser = new Intent(Intent.ACTION_VIEW, Uri.parse("https://www.google.com"));
+            startActivity(Intent.createChooser(browser, "Mở bằng trình duyệt"));
+        } catch (Exception e) {
+            new AlertDialog.Builder(this)
+                .setTitle("Chưa có Chrome")
+                .setMessage("Thiết bị chưa cài hoặc chưa bật Google Chrome. Hãy cài Chrome từ Cửa hàng Play rồi thử lại.")
+                .setPositiveButton("Mở Cửa hàng Play", (d, w) -> openPlayStore())
+                .setNegativeButton("Đóng", null).show();
+        }
+    }
+
+    private void openPcApp(String appName, String appUrl) {
         if (browserTabs.isEmpty()) browserTabs.add(appUrl);
         else if (appUrl != null && !appUrl.equals(pcWebCurrentUrl)) browserTabs.set(browserTabIndex, appUrl);
         LinearLayout page = new LinearLayout(this);
