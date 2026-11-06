@@ -551,7 +551,7 @@ public class MainActivity extends Activity {
         card.setGravity(Gravity.CENTER_VERTICAL);
         card.setPadding(dp(13), dp(13), dp(13), dp(13));
         card.setBackground(neonPanel(fill, glow, 17));
-        card.setElevation(dp(5));
+        card.setElevation(0);
         TextView ico = new TextView(this);
         ico.setText(icon); ico.setTextSize(27); ico.setTextColor(Color.WHITE);
         ico.setGravity(Gravity.CENTER);
@@ -1040,6 +1040,14 @@ public class MainActivity extends Activity {
                 }
             }
             browserTabIndex = browserTabs.isEmpty() ? 0 : Math.max(0, Math.min(p.getInt("tab_index", 0), browserTabs.size() - 1));
+            String savedPath = p.getString("terminal_path", currentPath);
+            if (savedPath != null && savedPath.startsWith("/")) currentPath = savedPath;
+            String savedHistory = p.getString("terminal_history", "");
+            if (savedHistory != null && !savedHistory.isEmpty()) {
+                JSONArray h = new JSONArray(savedHistory);
+                for (int i = Math.max(0, h.length() - 60); i < h.length(); i++) history.add(h.optString(i));
+                historyIndex = history.size();
+            }
         } catch (Exception ignored) {}
     }
 
@@ -1050,6 +1058,8 @@ public class MainActivity extends Activity {
             getSharedPreferences("gkc_browser_progress", MODE_PRIVATE).edit()
                 .putString("tabs", a.toString())
                 .putInt("tab_index", Math.max(0, browserTabIndex))
+                .putString("terminal_path", currentPath)
+                .putString("terminal_history", new JSONArray(history).toString())
                 .apply();
         } catch (Exception ignored) {}
     }
@@ -1187,7 +1197,7 @@ public class MainActivity extends Activity {
                         if (parts.length >= 3) newPath = parts[2];
                         break;
                     }
-                    if (result.length() < 12000) result.append(line).append("\n");
+                    if (result.length() < 6000) result.append(line).append("\n");
                 }
                 final String text = result.toString();
                 final String path = newPath;
@@ -1553,13 +1563,14 @@ public class MainActivity extends Activity {
 
     private void addHistory(String command) {
         history.add(command);
-        if (history.size() > 100) history.remove(0);
+        if (history.size() > 60) history.remove(0);
         historyIndex = history.size();
+        saveBrowserProgress();
     }
 
     private void trimOutput() {
         // Keep the most recent terminal output so long sessions do not grow without bound.
-        int maxChars = 9000;
+        int maxChars = 6000;
         if (output.length() > maxChars) {
             int remove = output.length() - maxChars;
             int newline = output.getText().toString().indexOf('\n', remove);
