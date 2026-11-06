@@ -126,7 +126,7 @@ public class MainActivity extends Activity {
             TextView sideTitle = new TextView(this);
             sideTitle.setText("GKC\\nWORKSPACE");
             sideTitle.setTextColor(FG);
-            sideTitle.setTextSize(13);
+            sideTitle.setTextSize(15);
             sideTitle.setTypeface(Typeface.MONOSPACE, Typeface.BOLD);
             sideTitle.setGravity(Gravity.CENTER);
             sidebar.addView(sideTitle, new LinearLayout.LayoutParams(-1, dp(48)));
@@ -139,7 +139,7 @@ public class MainActivity extends Activity {
             TextView navCaption = new TextView(this);
             navCaption.setText("WORKSPACE");
             navCaption.setTextColor(MUTED);
-            navCaption.setTextSize(9);
+            navCaption.setTextSize(12);
             navCaption.setTypeface(Typeface.MONOSPACE, Typeface.BOLD);
             sidebar.addView(navCaption);
             Button navLocal = smallButton("▣  Terminal");
@@ -165,7 +165,7 @@ public class MainActivity extends Activity {
             TextView sideFooter = new TextView(this);
             sideFooter.setText("ANDROID SHELL\\nSSH CLIENT");
             sideFooter.setTextColor(MUTED);
-            sideFooter.setTextSize(9);
+            sideFooter.setTextSize(12);
             sideFooter.setGravity(Gravity.CENTER);
             sidebar.addView(sideFooter);
             LinearLayout.LayoutParams sideLp = new LinearLayout.LayoutParams(dp(176), -1);
@@ -182,12 +182,12 @@ public class MainActivity extends Activity {
         TextView title = new TextView(this);
         title.setText("GKC APP");
         title.setTextColor(GREEN);
-        title.setTextSize(16);
+        title.setTextSize(17);
         title.setTypeface(Typeface.MONOSPACE, Typeface.BOLD);
         TextView subtitle = new TextView(this);
         subtitle.setText("LOCAL SHELL  /  SESSION ACTIVE");
         subtitle.setTextColor(MUTED);
-        subtitle.setTextSize(9);
+        subtitle.setTextSize(12);
         subtitle.setTypeface(Typeface.MONOSPACE);
         brand.addView(title);
         brand.addView(subtitle);
@@ -238,12 +238,12 @@ public class MainActivity extends Activity {
         TextView dot = new TextView(this);
         dot.setText("●");
         dot.setTextColor(GREEN);
-        dot.setTextSize(10);
+        dot.setTextSize(13);
         info.addView(dot);
         statusLabel = new TextView(this);
         statusLabel.setText("  SHELL READY");
         statusLabel.setTextColor(MUTED);
-        statusLabel.setTextSize(10);
+        statusLabel.setTextSize(13);
         statusLabel.setTypeface(Typeface.MONOSPACE);
         info.addView(statusLabel);
         content.addView(info);
@@ -265,7 +265,7 @@ public class MainActivity extends Activity {
 
         pathLabel = new TextView(this);
         pathLabel.setTextColor(BLUE);
-        pathLabel.setTextSize(10);
+        pathLabel.setTextSize(13);
         pathLabel.setTypeface(Typeface.MONOSPACE, Typeface.BOLD);
         pathLabel.setSingleLine(true);
         pathLabel.setPadding(dp(5), dp(9), dp(5), dp(5));
@@ -320,7 +320,7 @@ public class MainActivity extends Activity {
         Button run = new Button(this);
         run.setText("RUN  ▶");
         run.setTextColor(Color.rgb(5, 18, 12));
-        run.setTextSize(12);
+        run.setTextSize(15);
         run.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
         run.setAllCaps(false);
         run.setBackground(round(GREEN, 9));
@@ -361,16 +361,16 @@ public class MainActivity extends Activity {
         brandBox.setPadding(dp(10), 0, 0, 0);
         TextView brand = new TextView(this);
         brand.setText("GKC APP");
-        brand.setTextColor(Color.WHITE); brand.setTextSize(19);
+        brand.setTextColor(Color.WHITE); brand.setTextSize(20);
         brand.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
         TextView subBrand = new TextView(this);
         subBrand.setText("POWER YOUR DEVICE");
-        subBrand.setTextColor(Color.rgb(183, 154, 255)); subBrand.setTextSize(9);
+        subBrand.setTextColor(Color.rgb(183, 154, 255)); subBrand.setTextSize(12);
         subBrand.setTypeface(Typeface.MONOSPACE, Typeface.BOLD);
         brandBox.addView(brand); brandBox.addView(subBrand);
         top.addView(brandBox, new LinearLayout.LayoutParams(0, -2, 1));
         Button settings = smallButton("⚙");
-        settings.setTextSize(19); settings.setTextColor(Color.WHITE);
+        settings.setTextSize(20); settings.setTextColor(Color.WHITE);
         settings.setOnClickListener(v -> showAppearanceDialog());
         top.addView(settings, new LinearLayout.LayoutParams(dp(46), dp(42)));
         root.addView(top);
@@ -388,7 +388,7 @@ public class MainActivity extends Activity {
             side.setBackground(neonPanel(Color.rgb(17, 12, 42), Color.rgb(91, 42, 190), 18));
             TextView logo = new TextView(this);
             logo.setText("👑\nGKC APP");
-            logo.setTextColor(Color.WHITE); logo.setTextSize(17); logo.setGravity(Gravity.CENTER);
+            logo.setTextColor(Color.WHITE); logo.setTextSize(18); logo.setGravity(Gravity.CENTER);
             logo.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
             side.addView(logo, new LinearLayout.LayoutParams(-1, dp(82)));
             addHomeNav(side, "⌂  Trang Chủ", () -> showHomeDashboard());
@@ -400,7 +400,7 @@ public class MainActivity extends Activity {
             side.addView(spacer, new LinearLayout.LayoutParams(1, 0, 1));
             TextView foot = new TextView(this);
             foot.setText("●  SYSTEM ONLINE");
-            foot.setTextColor(mint); foot.setTextSize(10);
+            foot.setTextColor(mint); foot.setTextSize(13);
             side.addView(foot);
             LinearLayout.LayoutParams sideLp = new LinearLayout.LayoutParams(dp(164), -1);
             sideLp.rightMargin = dp(10); body.addView(side, sideLp);
@@ -424,7 +424,7 @@ public class MainActivity extends Activity {
         heroCopy.setOrientation(LinearLayout.VERTICAL);
         TextView eyebrow = new TextView(this);
         eyebrow.setText("✦  YOUR DIGITAL WORKSPACE");
-        eyebrow.setTextColor(Color.rgb(213, 171, 255)); eyebrow.setTextSize(9);
+        eyebrow.setTextColor(Color.rgb(213, 171, 255)); eyebrow.setTextSize(12);
         eyebrow.setTypeface(Typeface.MONOSPACE, Typeface.BOLD);
         TextView heroTitle = new TextView(this);
         heroTitle.setText("Xin chào!\nGKC APP");
@@ -432,7 +432,7 @@ public class MainActivity extends Activity {
         heroTitle.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
         TextView heroDesc = new TextView(this);
         heroDesc.setText("Mạnh mẽ  •  Đa năng  •  Siêu mượt");
-        heroDesc.setTextColor(Color.rgb(213, 202, 255)); heroDesc.setTextSize(10);
+        heroDesc.setTextColor(Color.rgb(213, 202, 255)); heroDesc.setTextSize(13);
         heroDesc.setPadding(0, dp(5), 0, 0);
         heroCopy.addView(eyebrow); heroCopy.addView(heroTitle); heroCopy.addView(heroDesc);
         hero.addView(heroCopy, new LinearLayout.LayoutParams(0, -2, 1));
@@ -455,7 +455,7 @@ public class MainActivity extends Activity {
         welcome.addView(welcomeIcon);
         TextView welcomeText = new TextView(this);
         welcomeText.setText("  Chào mừng bạn!\\n  Sẵn sàng khám phá các tính năng tuyệt vời? 🚀");
-        welcomeText.setTextColor(Color.WHITE); welcomeText.setTextSize(11);
+        welcomeText.setTextColor(Color.WHITE); welcomeText.setTextSize(14);
         welcome.addView(welcomeText, new LinearLayout.LayoutParams(0, -2, 1));
         LinearLayout.LayoutParams welcomeLp = new LinearLayout.LayoutParams(-1, -2);
         welcomeLp.bottomMargin = dp(9); main.addView(welcome, welcomeLp);
@@ -483,7 +483,7 @@ public class MainActivity extends Activity {
         addInfoLine(device, "Android", Build.VERSION.RELEASE + "  •  API " + Build.VERSION.SDK_INT);
         TextView ready = new TextView(this);
         ready.setText("●  HỆ THỐNG SẴN SÀNG");
-        ready.setTextColor(mint); ready.setTextSize(10);
+        ready.setTextColor(mint); ready.setTextSize(13);
         ready.setPadding(dp(8), dp(8), dp(8), dp(2));
         device.addView(ready);
         LinearLayout.LayoutParams deviceLp = new LinearLayout.LayoutParams(wide ? 0 : -1, -2, wide ? 1 : 0);
@@ -506,7 +506,7 @@ public class MainActivity extends Activity {
 
         TextView footer = new TextView(this);
         footer.setText("✦  GKC APP  •  ĐỈNH CAO CÔNG NGHỆ TRONG TẦM TAY BẠN  ✦");
-        footer.setTextColor(Color.rgb(204, 153, 255)); footer.setTextSize(9);
+        footer.setTextColor(Color.rgb(204, 153, 255)); footer.setTextSize(12);
         footer.setGravity(Gravity.CENTER);
         footer.setPadding(dp(4), dp(12), dp(4), dp(8));
         main.addView(footer);
@@ -534,7 +534,7 @@ public class MainActivity extends Activity {
 
     private TextView homeSectionTitle(String value) {
         TextView t = new TextView(this);
-        t.setText(value); t.setTextColor(Color.WHITE); t.setTextSize(13);
+        t.setText(value); t.setTextColor(Color.WHITE); t.setTextSize(15);
         t.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
         t.setPadding(dp(7), dp(8), dp(7), dp(7));
         return t;
@@ -554,16 +554,16 @@ public class MainActivity extends Activity {
         ico.setBackground(round(Color.rgb(69, 28, 139), 12));
         card.addView(ico, new LinearLayout.LayoutParams(dp(49), dp(43)));
         TextView name = new TextView(this);
-        name.setText(title); name.setTextColor(Color.WHITE); name.setTextSize(15);
+        name.setText(title); name.setTextColor(Color.WHITE); name.setTextSize(17);
         name.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
         name.setPadding(0, dp(8), 0, dp(3));
         card.addView(name);
         TextView sub = new TextView(this);
-        sub.setText(desc); sub.setTextColor(Color.rgb(219, 211, 248)); sub.setTextSize(10);
+        sub.setText(desc); sub.setTextColor(Color.rgb(219, 211, 248)); sub.setTextSize(13);
         card.addView(sub);
         TextView open = new TextView(this);
         open.setText("MỞ NGAY  →");
-        open.setTextColor(Color.WHITE); open.setTextSize(10);
+        open.setTextColor(Color.WHITE); open.setTextSize(13);
         open.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
         open.setGravity(Gravity.CENTER);
         open.setPadding(dp(8), dp(7), dp(8), dp(7));
@@ -581,7 +581,7 @@ public class MainActivity extends Activity {
     private void addInfoLine(LinearLayout parent, String key, String value) {
         TextView t = new TextView(this);
         t.setText(key + "     " + value);
-        t.setTextColor(Color.rgb(218, 213, 243)); t.setTextSize(11);
+        t.setTextColor(Color.rgb(218, 213, 243)); t.setTextSize(14);
         t.setPadding(dp(7), dp(5), dp(7), dp(5));
         parent.addView(t);
     }
@@ -626,7 +626,7 @@ public class MainActivity extends Activity {
         TextView themeLabel = new TextView(this);
         themeLabel.setText("GIAO DIỆN");
         themeLabel.setTextColor(FG);
-        themeLabel.setTextSize(12);
+        themeLabel.setTextSize(15);
         form.addView(themeLabel);
         Spinner theme = new Spinner(this);
         theme.setAdapter(new ArrayAdapter<String>(this, android.R.layout.simple_spinner_dropdown_item,
@@ -637,7 +637,7 @@ public class MainActivity extends Activity {
         TextView fontLabel = new TextView(this);
         fontLabel.setText("PHÔNG CHỮ");
         fontLabel.setTextColor(FG);
-        fontLabel.setTextSize(12);
+        fontLabel.setTextSize(15);
         fontLabel.setPadding(0, dp(12), 0, dp(3));
         form.addView(fontLabel);
         Spinner font = new Spinner(this);
@@ -755,14 +755,14 @@ public class MainActivity extends Activity {
         header.addView(back);
         TextView heading = new TextView(this);
         heading.setText("  THÊM ỨNG DỤNG");
-        heading.setTextColor(Color.WHITE); heading.setTextSize(19);
+        heading.setTextColor(Color.WHITE); heading.setTextSize(20);
         heading.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
         header.addView(heading, new LinearLayout.LayoutParams(0, dp(44), 1));
         page.addView(header);
 
         TextView caption = new TextView(this);
         caption.setText("CHỌN ỨNG DỤNG CÓ SẴN");
-        caption.setTextColor(Color.rgb(190, 155, 255)); caption.setTextSize(10);
+        caption.setTextColor(Color.rgb(190, 155, 255)); caption.setTextSize(13);
         caption.setTypeface(Typeface.MONOSPACE, Typeface.BOLD);
         caption.setPadding(dp(4), dp(12), dp(4), dp(8));
         page.addView(caption);
@@ -790,10 +790,10 @@ public class MainActivity extends Activity {
             info.setOrientation(LinearLayout.VERTICAL);
             info.setPadding(dp(12), 0, 0, 0);
             TextView name = new TextView(this);
-            name.setText(app[0]); name.setTextColor(Color.WHITE); name.setTextSize(17);
+            name.setText(app[0]); name.setTextColor(Color.WHITE); name.setTextSize(18);
             name.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
             TextView url = new TextView(this);
-            url.setText(app[1]); url.setTextColor(MUTED); url.setTextSize(10);
+            url.setText(app[1]); url.setTextColor(MUTED); url.setTextSize(13);
             info.addView(name); info.addView(url);
             appInfo.addView(info, new LinearLayout.LayoutParams(0, -2, 1));
             row.addView(appInfo);
@@ -802,7 +802,7 @@ public class MainActivity extends Activity {
             add.setText("＋  THÊM ỨNG DỤNG");
             add.setAllCaps(false);
             add.setTextColor(Color.WHITE);
-            add.setTextSize(18);
+            add.setTextSize(19);
             add.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
             add.setGravity(Gravity.CENTER);
             add.setMinHeight(dp(78));
@@ -820,7 +820,7 @@ public class MainActivity extends Activity {
         custom.setText("+  THÊM BẰNG LINK RIÊNG");
         custom.setAllCaps(false);
         custom.setTextColor(Color.WHITE);
-        custom.setTextSize(17);
+        custom.setTextSize(18);
         custom.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
         custom.setGravity(Gravity.CENTER);
         custom.setMinHeight(dp(76));
@@ -919,13 +919,13 @@ public class MainActivity extends Activity {
         title.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
         TextView sub = new TextView(this);
         sub.setText("THƯ VIỆN  •  ỨNG DỤNG CỦA BẠN");
-        sub.setTextColor(Color.rgb(190, 155, 255)); sub.setTextSize(9);
-        sub.setTypeface(Typeface.MONOSPACE, Typeface.BOLD);
+        sub.setTextColor(Color.rgb(190, 155, 255)); sub.setTextSize(12);
+        sub.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
         titleBox.addView(title); titleBox.addView(sub);
         header.addView(titleBox, new LinearLayout.LayoutParams(0, -2, 1));
         Button add = smallButton("+  THÊM APP");
         add.setTextColor(Color.WHITE);
-        add.setTextSize(10);
+        add.setTextSize(13);
         add.setBackground(round(Color.rgb(112, 58, 220), 12));
         add.setOnClickListener(v -> showAddPcAppDialog());
         header.addView(add);
@@ -934,7 +934,7 @@ public class MainActivity extends Activity {
         TextView intro = new TextView(this);
         intro.setText("Chọn ứng dụng để mở trong không gian PC. Discord sẽ hiển thị giao diện web máy tính giống video của bạn.");
         intro.setTextColor(Color.rgb(190, 184, 216));
-        intro.setTextSize(11);
+        intro.setTextSize(14);
         intro.setPadding(dp(3), dp(12), dp(3), dp(10));
         page.addView(intro);
 
@@ -947,7 +947,7 @@ public class MainActivity extends Activity {
         if (apps.length() == 0) {
             TextView empty = new TextView(this);
             empty.setText("Chưa có ứng dụng nào. Nhấn + THÊM APP để chọn ứng dụng hoặc tự dán link.");
-            empty.setTextColor(MUTED); empty.setTextSize(13); empty.setGravity(Gravity.CENTER);
+            empty.setTextColor(MUTED); empty.setTextSize(15); empty.setGravity(Gravity.CENTER);
             empty.setPadding(dp(18), dp(42), dp(18), dp(42));
             empty.setBackground(neonPanel(Color.rgb(22, 15, 48), Color.rgb(95, 55, 160), 16));
             content.addView(empty);
@@ -987,7 +987,7 @@ public class MainActivity extends Activity {
             View topSpacer = new View(this);
             cardTop.addView(topSpacer, new LinearLayout.LayoutParams(0, 1, 1));
             Button menu = smallButton("⋮");
-            menu.setTextSize(17);
+            menu.setTextSize(18);
             cardTop.addView(menu, new LinearLayout.LayoutParams(dp(38), dp(38)));
             menu.setOnClickListener(v -> new AlertDialog.Builder(this)
                 .setTitle(appName)
@@ -1012,11 +1012,11 @@ public class MainActivity extends Activity {
                 }).show());
 
             TextView name = new TextView(this);
-            name.setText(appName); name.setTextColor(Color.WHITE); name.setTextSize(15);
+            name.setText(appName); name.setTextColor(Color.WHITE); name.setTextSize(17);
             name.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
             name.setPadding(0, dp(9), 0, dp(3));
             TextView url = new TextView(this);
-            url.setText(appUrl); url.setTextColor(Color.rgb(160, 151, 190)); url.setTextSize(9);
+            url.setText(appUrl); url.setTextColor(Color.rgb(160, 151, 190)); url.setTextSize(12);
             url.setSingleLine(true); url.setEllipsize(android.text.TextUtils.TruncateAt.END);
             Button launch = smallButton("MỞ ỨNG DỤNG  →");
             launch.setTextColor(Color.WHITE);
@@ -1076,7 +1076,7 @@ public class MainActivity extends Activity {
         label.setText(appName + "  •  DESKTOP");
         label.setTextColor(Color.WHITE);
         label.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
-        label.setTextSize(13);
+        label.setTextSize(15);
         label.setPadding(dp(10), 0, dp(5), 0);
         toolbar.addView(label, new LinearLayout.LayoutParams(0, dp(42), 1));
         Button webBack = smallButton("←");
@@ -1208,7 +1208,7 @@ public class MainActivity extends Activity {
     private Button smallButton(String label) {
         Button b = new Button(this);
         b.setText(label);
-        b.setTextSize(9);
+        b.setTextSize(12);
         b.setTextColor(FG);
         b.setAllCaps(false);
         b.setTypeface(Typeface.MONOSPACE, Typeface.BOLD);
@@ -1374,7 +1374,7 @@ public class MainActivity extends Activity {
     private EditText field(String hint, boolean secret) {
         EditText e = new EditText(this);
         e.setSingleLine(false); e.setTextColor(FG); e.setHintTextColor(MUTED);
-        e.setHint(hint); e.setTextSize(14); e.setPadding(dp(10), dp(8), dp(10), dp(8));
+        e.setHint(hint); e.setTextSize(16); e.setPadding(dp(10), dp(8), dp(10), dp(8));
         e.setBackground(round(Color.rgb(35, 47, 60), 8));
         if (secret) e.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_PASSWORD);
         else e.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_MULTI_LINE);
@@ -1403,7 +1403,7 @@ public class MainActivity extends Activity {
         title.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
         TextView subtitle = new TextView(this);
         subtitle.setText("REMOTE SERVER CONNECTION");
-        subtitle.setTextColor(Color.rgb(157, 188, 255)); subtitle.setTextSize(9);
+        subtitle.setTextColor(Color.rgb(157, 188, 255)); subtitle.setTextSize(12);
         subtitle.setTypeface(Typeface.MONOSPACE, Typeface.BOLD);
         titleBox.addView(title); titleBox.addView(subtitle);
         header.addView(titleBox, new LinearLayout.LayoutParams(0, -2, 1));
@@ -1422,11 +1422,11 @@ public class MainActivity extends Activity {
         icon.setText("⇄"); icon.setTextSize(38); icon.setTextColor(Color.WHITE);
         TextView heading = new TextView(this);
         heading.setText("Kết nối máy chủ từ xa");
-        heading.setTextColor(Color.WHITE); heading.setTextSize(19);
+        heading.setTextColor(Color.WHITE); heading.setTextSize(20);
         heading.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
         TextView help = new TextView(this);
         help.setText("Kết nối VPS qua SSH bằng địa chỉ IP, cổng, tài khoản và mật khẩu hoặc SSH Key. Khi kết nối xong, lệnh sẽ chạy trên máy chủ.");
-        help.setTextColor(Color.rgb(207, 222, 245)); help.setTextSize(12);
+        help.setTextColor(Color.rgb(207, 222, 245)); help.setTextSize(15);
         help.setPadding(0, dp(7), 0, dp(13));
         hero.addView(icon); hero.addView(heading); hero.addView(help);
         Button connect = smallButton(sshConnected ? "ĐANG KẾT NỐI  •  MỞ TERMINAL VPS" : "＋  THIẾT LẬP KẾT NỐI SSH");
@@ -1485,7 +1485,7 @@ public class MainActivity extends Activity {
         ScrollView sc = new ScrollView(this);
         TextView note = new TextView(this);
         note.setText("Nhập thông tin SSH do nhà cung cấp VPS cấp. Có thể dùng IP hoặc tên miền. Để trống mật khẩu nếu dùng SSH Key.");
-        note.setTextColor(MUTED); note.setTextSize(12); form.addView(note);
+        note.setTextColor(MUTED); note.setTextSize(15); form.addView(note);
         EditText host = field("IP hoặc tên miền VPS", false);
         EditText port = field("Cổng SSH (mặc định 22)", false); port.setText("22");
         EditText user = field("Tên đăng nhập (ví dụ root)", false);
@@ -1512,7 +1512,7 @@ public class MainActivity extends Activity {
     }
 
     private void addFormField(LinearLayout parent, String label, View inputView) {
-        TextView t = new TextView(this); t.setText(label); t.setTextColor(FG); t.setTextSize(12);
+        TextView t = new TextView(this); t.setText(label); t.setTextColor(FG); t.setTextSize(15);
         t.setPadding(0, dp(9), 0, dp(4)); parent.addView(t);
         parent.addView(inputView, new LinearLayout.LayoutParams(-1,
             inputView instanceof EditText ? dp(46) : dp(48)));
