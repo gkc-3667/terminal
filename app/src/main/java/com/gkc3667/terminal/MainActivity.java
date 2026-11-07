@@ -329,7 +329,13 @@ public class MainActivity extends Activity {
         sshKeys.setGravity(Gravity.CENTER_VERTICAL);
         sshKeys.setOrientation(LinearLayout.HORIZONTAL);
         String esc = new String(new char[]{27});
-        String[][] specialKeys = {{"CTRL-C", new String(new char[]{3})}, {"CTRL-D", new String(new char[]{4})}, {"TAB", "\t"}, {"ESC", esc}, {"↑", esc + "[A"}, {"↓", esc + "[B"}, {"←", esc + "[D"}, {"→", esc + "[C"}};
+        String[][] specialKeys = {
+            {"CTRL-C", new String(new char[]{3})}, {"CTRL-D", new String(new char[]{4})},
+            {"CTRL-L", new String(new char[]{12})}, {"CTRL-Z", new String(new char[]{26})},
+            {"⌫", new String(new char[]{127})}, {"TAB", "\t"}, {"ESC", esc},
+            {"HOME", esc + "[H"}, {"END", esc + "[F"},
+            {"↑", esc + "[A"}, {"↓", esc + "[B"}, {"←", esc + "[D"}, {"→", esc + "[C"}
+        };
         for (String[] k : specialKeys) {
             Button keyButton = smallButton(k[0]);
             keyButton.setOnClickListener(v -> sendTerminalInput(k[1]));
@@ -2236,6 +2242,7 @@ public class MainActivity extends Activity {
         @Override public boolean onCodePoint(int codePoint, boolean ctrlDown, TerminalSession session) { return false; }
         @Override public void onEmulatorSet() {
             if (statusLabel != null) statusLabel.setText(sshConnected ? "  VPS CONNECTED" : "  LOCAL PTY  •  READY");
+            if (sshConnected && terminalView != null) terminalView.postDelayed(() -> resizeSshPty(), 80);
             TerminalSession active = terminalSession;
             if (!sshConnected && !terminalWelcomeWritten && active != null && active.isRunning()) {
                 terminalWelcomeWritten = true;
