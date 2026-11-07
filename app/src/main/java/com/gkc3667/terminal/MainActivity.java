@@ -1889,11 +1889,13 @@ public class MainActivity extends Activity {
                     sshConnected = true; sshReaderRunning = true;
                 }
                 runOnUiThread(() -> {
-                    busy = false; statusLabel.setText("  VPS CONNECTED  •  " + host);
+                    busy = false;
+                    if (terminalRoot != null) setContentView(terminalRoot);
+                    statusLabel.setText("  VPS CONNECTED  •  " + host);
+                    input.setHint("Nhập lệnh VPS rồi nhấn RUN/Enter hoặc bật INPUT: RAW cho TUI...");
+                    if (terminalView != null) terminalView.postDelayed(this::resizeSshPty, 350);
                     writeLine("Đã kết nối VPS. Terminal nhận dữ liệu trực tiếp từ máy chủ.", GREEN, true);
-                    writeLine("Các phím CTRL-C / CTRL-D / TAB / ESC / mũi tên có thể gửi tới VPS.", MUTED, false);
-                    input.setHint("Nhập lệnh VPS rồi nhấn RUN/Enter...");
-                    if (scroll != null) scroll.postDelayed(this::resizeSshPty, 250);
+                    writeLine("Bật INPUT: RAW để dùng vim, nano, top và các chương trình tương tác.", MUTED, false);
                 });
                 // Read in large blocks and batch UI rendering on a 40 ms cadence.
                 byte[] buffer = new byte[8192];
