@@ -10,8 +10,8 @@ android {
         applicationId = "com.gkc3667.terminal"
         minSdk = 24
         targetSdk = 28
-        versionCode = 2
-        versionName = "2.0"
+        versionCode = 3
+        versionName = "3.0"
         ndk {
             abiFilters += listOf("armeabi-v7a", "arm64-v8a", "x86", "x86_64")
         }
@@ -21,6 +21,7 @@ android {
 dependencies {
     implementation("com.github.mwiede:jsch:0.2.20")
     implementation("androidx.webkit:webkit:1.9.0")
+    implementation("com.github.termux.termux-app:terminal-view:0.118.0")
 }
 
 chaquopy {
