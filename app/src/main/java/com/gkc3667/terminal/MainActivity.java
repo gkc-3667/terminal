@@ -1430,23 +1430,42 @@ public class MainActivity extends Activity {
         return d;
     }
 
+
     private void startShell() {
         try {
-            shell = new ProcessBuilder("/system/bin/sh").redirectErrorStream(true).start();
-            shellIn = new BufferedWriter(new OutputStreamWriter(shell.getOutputStream()));
-            shellOut = new BufferedReader(new InputStreamReader(shell.getInputStream()));
-            shellIn.write("cd " + quote(currentPath) + "\n");
-            shellIn.flush();
-            statusLabel.setText("  SHELL READY  •  /system/bin/sh");
+            if (terminalSession != null && terminalSession.isRunning()) {
+                if (terminalView != null && terminalView.mTermSession != terminalSession) terminalView.attachSession(terminalSession);
+                return;
+            }
+            String[] args = new String[]{"sh", "-i"};
+            String[] env = new String[]{
+                "HOME=" + getFilesDir().getAbsolutePath(),
+                "TMPDIR=" + getCacheDir().getAbsolutePath(),
+                "PATH=/system/bin:/system/xbin",
+                "SHELL=/system/bin/sh",
+                "TERM=xterm-256color",
+                "COLORTERM=truecolor",
+                "LANG=C.UTF-8",
+                "PS1=$ "
+            };
+            terminalSession = new TerminalSession("/system/bin/sh", currentPath, args, env, 4000, terminalCallbacks);
+            terminalWelcomeWritten = false;
+            if (terminalView != null) {
+                terminalView.setTextSize(terminalFontSize);
+                terminalView.setTypeface(resolveTerminalTypeface());
+                terminalView.attachSession(terminalSession);
+            }
+            statusLabel.setText("  LOCAL PTY  •  /system/bin/sh");
         } catch (Exception e) {
-            statusLabel.setText("  SHELL ERROR");
-            writeLine("Không thể khởi động shell: " + e.getMessage(), Color.RED, false);
+            statusLabel.setText("  PTY ERROR");
+            writeLine("Không thể khởi động PTY: " + e.getMessage(), Color.RED, false);
         }
     }
 
     private String quote(String value) {
         return "'" + value.replace("'", "'\\''") + "'";
     }
+
 
     private void runCommand() {
         if (busy) return;
@@ -1456,67 +1475,37 @@ public class MainActivity extends Activity {
         hideKeyboard();
         if (cmd.equalsIgnoreCase("ssh disconnect") || cmd.equalsIgnoreCase("vps disconnect")) { disconnectSsh(); return; }
         if (sshConnected) { addHistory(cmd); runSshCommand(cmd); return; }
-        if (shellIn == null || shellOut == null) return;
+        if (terminalSession == null || !terminalSession.isRunning() || terminalSession.getEmulator() == null) {
+            startShell();
+            statusLabel.setText("  PTY STARTING — TRY AGAIN");
+            return;
+        }
         if (cmd.matches("^(python|python3|pip|pip3)(\\s|$).*$")) { runPythonCommand(cmd); return; }
-        if ("clear".equals(cmd)) { output.setText(""); showPrompt(); return; }
-        if ("help".equals(cmd)) { showHelp(); return; }
-        if ("history".equals(cmd)) {
-            StringBuilder historyText = new StringBuilder("$ history\n");
-            for (int i = 0; i < history.size(); i++) {
-                historyText.append(i + 1).append("  ").append(history.get(i)).append('\n');
-            }
-            output.append(historyText);
-            trimOutput();
+        if ("clear".equals(cmd)) {
+            addHistory(cmd);
+            terminalSession.reset();
+            terminalSession.write("\r");
             showPrompt();
             return;
         }
+        if ("help".equals(cmd)) { addHistory(cmd); showHelp(); return; }
+        if ("history".equals(cmd)) {
+            addHistory(cmd);
+            StringBuilder historyText = new StringBuilder();
+            for (int i = 0; i < history.size(); i++) historyText.append(i + 1).append("  ").append(history.get(i)).append('\n');
+            emitLocalText(historyText.toString());
+            return;
+        }
         if ("exit".equals(cmd)) {
-            stopShell();
-            startShell();
-            writeLine("Đã mở phiên shell mới.", GREEN, false);
-            showPrompt(); return;
+            addHistory(cmd);
+            terminalSession.write("exit\r");
+            statusLabel.setText("  SHELL EXITING...");
+            return;
         }
         addHistory(cmd);
-        historyIndex = history.size();
-        writeLine("$ " + cmd, BLUE, true);
-        busy = true;
-        statusLabel.setText("  RUNNING...");
-        final String marker = "__TP_DONE_" + System.nanoTime() + "__";
-        new Thread(() -> {
-            String newPath = currentPath;
-            String exitCode = "0";
-            try {
-                shellIn.write(cmd + "\n");
-                shellIn.write("printf '\\n" + marker + ":%s:%s\\n' \"$?\" \"$PWD\"\n");
-                shellIn.flush();
-                String line;
-                while ((line = shellOut.readLine()) != null) {
-                    if (line.startsWith(marker + ":")) {
-                        String[] parts = line.split(":", 3);
-                        if (parts.length >= 2) exitCode = parts[1];
-                        if (parts.length >= 3) newPath = parts[2];
-                        break;
-                    }
-                    queueTerminalOutput(line + "\n");
-                }
-                final String path = newPath;
-                final String code = exitCode;
-                runOnUiThread(() -> {
-                    flushTerminalOutput();
-                    currentPath = path;
-                    saveBrowserProgress();
-                    statusLabel.setText("  SHELL READY  •  EXIT " + code);
-                    busy = false;
-                    showPrompt();
-                });
-            } catch (Exception e) {
-                runOnUiThread(() -> {
-                    writeLine("Lỗi shell: " + e.getMessage(), Color.RED, false);
-                    statusLabel.setText("  SHELL ERROR");
-                    busy = false;
-                });
-            }
-        }, "terminal-command").start();
+        terminalSession.write(cmd + "\r");
+        statusLabel.setText("  LOCAL PTY  •  RUNNING");
+        showPrompt();
     }
 
     private void runPythonCommand(String cmd) {
@@ -1536,10 +1525,7 @@ public class MainActivity extends Activity {
                         .callAttr("run_command", cmd, path)
                         .toString();
                 runOnUiThread(() -> {
-                    if (!result.isEmpty()) {
-                        queueTerminalOutput(result + (result.endsWith("\n") ? "" : "\n"));
-                    }
-                    flushTerminalOutput();
+                    if (!result.isEmpty()) emitLocalText("$ " + cmd + "\n" + result + (result.endsWith("\n") ? "" : "\n"));
                     statusLabel.setText("  PYTHON READY");
                     busy = false;
                     showPrompt();
@@ -1555,29 +1541,22 @@ public class MainActivity extends Activity {
         }, "terminal-python").start();
     }
 
-    private void showHelp() {
-        writeLine("$ help", BLUE, true);
-        writeLine("LỆNH CƠ BẢN", GREEN, true);
-        writeLine("pwd       xem thư mục hiện tại", FG, false);
-        writeLine("ls -la    liệt kê tệp và thư mục", FG, false);
-        writeLine("cd PATH   chuyển thư mục (được giữ giữa các lệnh)", FG, false);
-        writeLine("mkdir X   tạo thư mục     touch X   tạo tệp", FG, false);
-        writeLine("cat X     đọc tệp         rm X      xóa tệp", FG, false);
-        writeLine("cp A B    sao chép        mv A B    di chuyển/đổi tên", FG, false);
-        writeLine("echo TEXT in văn bản      env       xem biến môi trường", FG, false);
-        writeLine("history   xem lịch sử     clear     xóa màn hình", FG, false);
-        writeLine("exit      khởi động phiên shell mới", FG, false);
-        writeLine("VPS / SSH  kết nối VPS bằng IP, mật khẩu hoặc SSH Key", FG, false);
-        writeLine("ssh disconnect  ngắt kết nối VPS và quay về shell máy", FG, false);
-        writeLine("LƯU Ý", GREEN, true);
-        writeLine("Đây là shell Android thật (/system/bin/sh), không phải Debian.", MUTED, false);
-        writeLine("Nhấn VPS / SSH để kết nối máy chủ từ xa. Khi kết nối, lệnh sẽ chạy trên VPS.", MUTED, false);
-        writeLine("Python 3.11 được tích hợp: python --version, python file.py, python -c \"print(123)\"", MUTED, false);
-        writeLine("discord.py được đóng gói sẵn: pip list / pip show discord.py", MUTED, false);
-        writeLine("pip cài thêm gói tùy ý chưa hỗ trợ; apt và sudo không có.", MUTED, false);
-        showPrompt();
-    }
 
+    private void showHelp() {
+        String help = "GKC TERMINAL HELP\n" +
+            "pwd       xem thư mục hiện tại\n" +
+            "ls -la    liệt kê tệp và thư mục\n" +
+            "cd PATH   chuyển thư mục\n" +
+            "mkdir X   tạo thư mục     touch X   tạo tệp\n" +
+            "cat X     đọc tệp         rm X      xóa tệp\n" +
+            "cp A B    sao chép        mv A B    di chuyển/đổi tên\n" +
+            "echo TEXT in văn bản      env       xem biến môi trường\n" +
+            "history   xem lịch sử     clear     xóa màn hình\n" +
+            "exit      kết thúc phiên shell\n" +
+            "VPS / SSH  kết nối VPS bằng IP, mật khẩu hoặc SSH Key\n" +
+            "Lưu ý: đây là shell Android, không phải Ubuntu/Debian; không có apt/sudo/root mặc định.\n";
+        emitLocalText(help);
+    }
 
     private EditText field(String hint, boolean secret) {
         EditText e = new EditText(this);
@@ -1896,6 +1875,7 @@ public class MainActivity extends Activity {
                     }
                 });
                 session.connect(18000);
+                if (terminalSession != null && terminalSession.isRunning()) terminalSession.reset();
                 ChannelShell channel = (ChannelShell) session.openChannel("shell");
                 channel.setPtyType("xterm-256color");
                 channel.setPtySize(100, 32, 900, 576);
@@ -1920,7 +1900,7 @@ public class MainActivity extends Activity {
                 while (sshReaderRunning && !channel.isClosed()) {
                     int n = in.read(buffer);
                     if (n < 0) break;
-                    queueTerminalOutput(new String(buffer, 0, n, "UTF-8"));
+                    queueTerminalBytes(buffer, 0, n);
                 }
                 if (sshReaderRunning) runOnUiThread(() -> {
                     flushTerminalOutput();
@@ -1939,21 +1919,53 @@ public class MainActivity extends Activity {
     }
 
     // Coalesce local and remote output. TextView updates and auto-scroll happen once per batch.
+
     private void queueTerminalOutput(String chunk) {
         if (chunk == null || chunk.isEmpty()) return;
+        byte[] data = chunk.getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        queueTerminalBytes(data, 0, data.length);
+    }
+
+    private void queueTerminalBytes(byte[] data, int offset, int length) {
+        if (data == null || length <= 0) return;
         boolean schedule = false;
-        synchronized (terminalPendingOutput) {
-            terminalPendingOutput.append(chunk);
-            // Bound the pending queue if a remote process floods stdout faster than the UI can draw.
-            if (terminalPendingOutput.length() > 32000) {
-                terminalPendingOutput.delete(0, terminalPendingOutput.length() - 24000);
-            }
-            if (!terminalFlushScheduled) {
-                terminalFlushScheduled = true;
-                schedule = true;
-            }
+        synchronized (terminalPendingBytes) {
+            if (terminalPendingBytes.size() + length > 524288) terminalPendingBytes.reset();
+            terminalPendingBytes.write(data, offset, length);
+            if (!terminalFlushScheduled) { terminalFlushScheduled = true; schedule = true; }
         }
-        if (schedule) mainHandler.postDelayed(this::flushTerminalOutput, 40);
+        if (schedule) mainHandler.postDelayed(this::flushTerminalOutput, 32);
+    }
+
+    private void flushTerminalOutput() {
+        final byte[] chunk;
+        synchronized (terminalPendingBytes) {
+            if (terminalPendingBytes.size() == 0) { terminalFlushScheduled = false; return; }
+            chunk = terminalPendingBytes.toByteArray();
+            terminalPendingBytes.reset();
+            terminalFlushScheduled = false;
+        }
+        if (isFinishing()) return;
+        if (terminalView != null && terminalView.mEmulator != null) {
+            terminalView.mEmulator.append(chunk, chunk.length);
+            terminalView.onScreenUpdated();
+        } else if (output != null) {
+            output.append(new String(chunk, java.nio.charset.StandardCharsets.UTF_8));
+            trimOutput();
+        }
+    }
+
+    private void emitLocalText(String text) {
+        if (text == null || text.isEmpty()) return;
+        if (sshConnected) { queueTerminalOutput(text); return; }
+        TerminalSession active = terminalSession;
+        if (active == null || !active.isRunning() || active.getEmulator() == null) {
+            if (output != null) output.append(text);
+            return;
+        }
+        byte[] data = text.getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        active.getEmulator().append(data, data.length);
+        if (terminalView != null) terminalView.onScreenUpdated();
     }
 
     private void flushTerminalOutput() {
@@ -1974,19 +1986,19 @@ public class MainActivity extends Activity {
         if (followOutput) scroll.post(() -> scroll.fullScroll(View.FOCUS_DOWN));
     }
 
+
     private void resizeSshPty() {
         final ChannelShell active = sshChannel;
-        if (!sshConnected || active == null || output == null || scroll == null) return;
-        float cellWidth = Math.max(1f, output.getPaint().measureText("M"));
-        int cellHeight = Math.max(dp(16), output.getLineHeight());
-        int columns = Math.max(40, Math.min(240, (int) (scroll.getWidth() / cellWidth)));
-        int rows = Math.max(12, Math.min(100, scroll.getHeight() / cellHeight));
-        try {
-            active.setPtySize(columns, rows, (int) (columns * cellWidth), rows * cellHeight);
-        } catch (Exception ignored) {}
+        if (!sshConnected || active == null || terminalView == null) return;
+        terminalView.updateSize();
+        TerminalEmulator emulator = terminalView.mEmulator;
+        if (emulator == null) return;
+        int columns = Math.max(4, Math.min(240, emulator.mColumns));
+        int rows = Math.max(4, Math.min(100, emulator.mRows));
+        try { active.setPtySize(columns, rows, columns * dp(8), rows * dp(18)); }
+        catch (Exception ignored) {}
     }
 
-    // All SSH socket writes run on a dedicated worker; Android UI thread must never do network I/O.
     private final java.util.concurrent.ExecutorService sshIoExecutor =
             java.util.concurrent.Executors.newSingleThreadExecutor();
 
@@ -2013,25 +2025,27 @@ public class MainActivity extends Activity {
         });
     }
 
-    private void sendSshControl(String value) {
-        final java.io.OutputStream remote = sshRawOut;
-        if (!sshConnected || remote == null) {
-            if (statusLabel != null) statusLabel.setText("  HÃY KẾT NỐI VPS TRƯỚC");
-            return;
-        }
-        sshIoExecutor.execute(() -> {
-            try {
-                remote.write(value.getBytes("UTF-8"));
-                remote.flush();
-            } catch (Exception e) {
-                final String reason = e.getClass().getSimpleName() + ": " + e.getMessage();
-                runOnUiThread(() -> {
-                    writeLine("Lỗi gửi phím SSH: " + reason, Color.RED, false);
-                    disconnectSsh();
-                });
-            }
-        });
-        if (input != null) input.requestFocus();
+
+    private void sendSshControl(String value) { sendTerminalInput(value); }
+
+    private void sendTerminalInput(String value) {
+        if (value == null || value.isEmpty()) return;
+        if (sshConnected) {
+            final java.io.OutputStream remote = sshRawOut;
+            if (remote == null) return;
+            sshIoExecutor.execute(() -> {
+                try {
+                    remote.write(value.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+                    remote.flush();
+                } catch (Exception e) {
+                    final String reason = e.getClass().getSimpleName() + ": " + e.getMessage();
+                    runOnUiThread(() -> {
+                        writeLine("Lỗi gửi phím SSH: " + reason, Color.RED, false);
+                        disconnectSsh();
+                    });
+                }
+            });
+        } else if (terminalSession != null && terminalSession.isRunning()) terminalSession.write(value);
     }
 
     private void disconnectSsh() {
@@ -2049,7 +2063,11 @@ public class MainActivity extends Activity {
             try { if (oldChannel != null) oldChannel.disconnect(); } catch (Exception ignored) {}
             try { if (oldSession != null) oldSession.disconnect(); } catch (Exception ignored) {}
         });
-        if (statusLabel != null) statusLabel.setText("  SHELL READY");
+        if (statusLabel != null) statusLabel.setText("  LOCAL PTY  •  DISCONNECTED");
+        if (terminalSession != null && terminalSession.isRunning()) {
+            terminalSession.reset();
+            terminalSession.write("\r");
+        }
         writeLine("Đã ngắt VPS. Bạn đang quay về shell trên thiết bị.", GREEN, false);
         showPrompt();
     }
@@ -2061,11 +2079,16 @@ public class MainActivity extends Activity {
         input.setSelection(input.length());
     }
 
+
     private void showPrompt() {
-        pathLabel.setText(" " + currentPath);
-        output.append("\n");
-        output.append(currentPath + " $ ");
-        scroll.post(() -> scroll.fullScroll(View.FOCUS_DOWN));
+        if (pathLabel != null) pathLabel.setText(" " + currentPath);
+    }
+
+    private void writeLine(String value, int color, boolean bold) {
+        if (value == null || value.isEmpty()) return;
+        String text = value + "\n";
+        if (sshConnected) queueTerminalOutput(text);
+        else emitLocalText(text);
     }
 
     private void writeLine(String value, int color, boolean bold) {
@@ -2110,10 +2133,14 @@ public class MainActivity extends Activity {
         }
     }
 
+
     private void copyOutput() {
         ClipboardManager clipboard = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
-        clipboard.setPrimaryClip(ClipData.newPlainText("Terminal output", output.getText()));
-        statusLabel.setText("  COPIED TO CLIPBOARD");
+        String transcript = terminalView != null && terminalView.mEmulator != null
+            ? terminalView.mEmulator.getScreen().getTranscriptText()
+            : (output == null ? "" : output.getText().toString());
+        if (clipboard != null) clipboard.setPrimaryClip(ClipData.newPlainText("Terminal output", transcript));
+        if (statusLabel != null) statusLabel.setText("  COPIED TO CLIPBOARD");
     }
 
     private void hideKeyboard() {
@@ -2122,11 +2149,16 @@ public class MainActivity extends Activity {
         input.clearFocus();
     }
 
+
     private void stopShell() {
         try { if (shellIn != null) shellIn.close(); } catch (Exception ignored) {}
         try { if (shellOut != null) shellOut.close(); } catch (Exception ignored) {}
         if (shell != null) shell.destroy();
         shell = null; shellIn = null; shellOut = null;
+        TerminalSession active = terminalSession;
+        terminalSession = null;
+        terminalWelcomeWritten = false;
+        if (active != null) try { active.finishIfRunning(); } catch (Exception ignored) {}
     }
 
     @Override protected void onDestroy() {
@@ -2147,4 +2179,87 @@ public class MainActivity extends Activity {
     private int dp(int value) {
         return (int) (value * getResources().getDisplayMetrics().density + 0.5f);
     }
+    private final class TerminalCallbacks implements TerminalSessionClient, TerminalViewClient {
+        private void updateFromTerminal(TerminalSession session) {
+            if (session == null) return;
+            String cwd = session.getCwd();
+            if (cwd != null && !cwd.isEmpty() && !cwd.equals(currentPath)) {
+                currentPath = cwd;
+                if (pathLabel != null) pathLabel.setText(" " + currentPath);
+                saveBrowserProgress();
+            }
+            if (terminalView != null) terminalView.onScreenUpdated();
+        }
+        @Override public void onTextChanged(TerminalSession session) {
+            runOnUiThread(() -> updateFromTerminal(session));
+        }
+        @Override public void onTitleChanged(TerminalSession session) {
+            runOnUiThread(() -> {
+                if (statusLabel != null && session.getTitle() != null) statusLabel.setText("  LOCAL PTY  •  " + session.getTitle());
+            });
+        }
+        @Override public void onSessionFinished(TerminalSession session) {
+            runOnUiThread(() -> {
+                busy = false;
+                if (statusLabel != null) statusLabel.setText("  SHELL EXITED  •  " + session.getExitStatus());
+            });
+        }
+        @Override public void onCopyTextToClipboard(TerminalSession session, String text) {
+            runOnUiThread(() -> {
+                ClipboardManager clipboard = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
+                if (clipboard != null) clipboard.setPrimaryClip(ClipData.newPlainText("Terminal selection", text));
+            });
+        }
+        @Override public void onPasteTextFromClipboard(TerminalSession session) {
+            runOnUiThread(() -> {
+                ClipboardManager clipboard = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
+                if (clipboard == null || !clipboard.hasPrimaryClip() || clipboard.getPrimaryClip().getItemCount() == 0) return;
+                CharSequence value = clipboard.getPrimaryClip().getItemAt(0).coerceToText(MainActivity.this);
+                if (value != null && session.getEmulator() != null) session.getEmulator().paste(value.toString());
+            });
+        }
+        @Override public void onBell(TerminalSession session) {}
+        @Override public void onColorsChanged(TerminalSession session) {
+            runOnUiThread(() -> { if (terminalView != null) terminalView.invalidate(); });
+        }
+        @Override public void onTerminalCursorStateChange(boolean state) {}
+        @Override public Integer getTerminalCursorStyle() { return TerminalEmulator.TERMINAL_CURSOR_STYLE_BLOCK; }
+        @Override public void logError(String tag, String message) {}
+        @Override public void logWarn(String tag, String message) {}
+        @Override public void logInfo(String tag, String message) {}
+        @Override public void logDebug(String tag, String message) {}
+        @Override public void logVerbose(String tag, String message) {}
+        @Override public void logStackTraceWithMessage(String tag, String message, Exception e) {}
+        @Override public void logStackTrace(String tag, Exception e) {}
+
+        @Override public float onScale(float scale) { return scale; }
+        @Override public void onSingleTapUp(MotionEvent event) {
+            if (input != null) {
+                input.requestFocus();
+                InputMethodManager imm = (InputMethodManager) getSystemService(INPUT_METHOD_SERVICE);
+                if (imm != null) imm.showSoftInput(input, InputMethodManager.SHOW_IMPLICIT);
+            }
+        }
+        @Override public boolean shouldBackButtonBeMappedToEscape() { return false; }
+        @Override public boolean shouldEnforceCharBasedInput() { return true; }
+        @Override public boolean shouldUseCtrlSpaceWorkaround() { return false; }
+        @Override public boolean isTerminalViewSelected() { return false; }
+        @Override public void copyModeChanged(boolean copyMode) {}
+        @Override public boolean onKeyDown(int keyCode, KeyEvent event, TerminalSession session) { return false; }
+        @Override public boolean onKeyUp(int keyCode, KeyEvent event) { return false; }
+        @Override public boolean onLongPress(MotionEvent event) { return false; }
+        @Override public boolean readControlKey() { return false; }
+        @Override public boolean readAltKey() { return false; }
+        @Override public boolean readShiftKey() { return false; }
+        @Override public boolean readFnKey() { return false; }
+        @Override public boolean onCodePoint(int codePoint, boolean ctrlDown, TerminalSession session) { return false; }
+        @Override public void onEmulatorSet() {
+            if (statusLabel != null) statusLabel.setText("  LOCAL PTY  •  READY");
+            TerminalSession active = terminalSession;
+            if (active != null && active.isRunning()) {
+                active.write("export TERM=xterm-256color; PS1='$ '; printf '%s\\n' 'GKC APP • ANDROID PTY' 'ANSI / VT terminal ready' 'Type help for commands.'\\r");
+            }
+        }
+    }
+
 }
