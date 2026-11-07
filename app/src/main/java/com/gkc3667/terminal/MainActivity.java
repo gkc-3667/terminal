@@ -278,7 +278,7 @@ public class MainActivity extends Activity {
 
         FrameLayout terminalFrame = new FrameLayout(this);
         terminalFrame.setBackground(round(discordTheme ? Color.rgb(30, 31, 34) : Color.rgb(6, 9, 13), 12));
-        terminalView = new TerminalView(this);
+        terminalView = new TerminalView(this, null);
         terminalView.setBackgroundColor(discordTheme ? Color.rgb(30, 31, 34) : Color.rgb(6, 9, 13));
         terminalView.setTerminalViewClient(terminalCallbacks);
         terminalView.setTextSize(terminalFontSize);
