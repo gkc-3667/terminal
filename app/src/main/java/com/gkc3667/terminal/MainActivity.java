@@ -1940,21 +1940,28 @@ public class MainActivity extends Activity {
     }
 
     private void flushTerminalOutput() {
+        if (isFinishing()) {
+            synchronized (terminalPendingBytes) {
+                terminalPendingBytes.reset();
+                terminalFlushScheduled = false;
+            }
+            return;
+        }
         final byte[] chunk;
         synchronized (terminalPendingBytes) {
             if (terminalPendingBytes.size() == 0) { terminalFlushScheduled = false; return; }
+            // The SSH login banner can arrive before the terminal screen is attached and measured.
+            // Keep the raw bytes queued until the VT emulator exists instead of losing that output.
+            if (terminalView == null || terminalView.mEmulator == null) {
+                mainHandler.postDelayed(this::flushTerminalOutput, 32);
+                return;
+            }
             chunk = terminalPendingBytes.toByteArray();
             terminalPendingBytes.reset();
             terminalFlushScheduled = false;
         }
-        if (isFinishing()) return;
-        if (terminalView != null && terminalView.mEmulator != null) {
-            terminalView.mEmulator.append(chunk, chunk.length);
-            terminalView.onScreenUpdated();
-        } else if (output != null) {
-            output.append(new String(chunk, java.nio.charset.StandardCharsets.UTF_8));
-            trimOutput();
-        }
+        terminalView.mEmulator.append(chunk, chunk.length);
+        terminalView.onScreenUpdated();
     }
 
     private void emitLocalText(String text) {
@@ -2228,9 +2235,9 @@ public class MainActivity extends Activity {
         @Override public boolean readFnKey() { return false; }
         @Override public boolean onCodePoint(int codePoint, boolean ctrlDown, TerminalSession session) { return false; }
         @Override public void onEmulatorSet() {
-            if (statusLabel != null) statusLabel.setText("  LOCAL PTY  •  READY");
+            if (statusLabel != null) statusLabel.setText(sshConnected ? "  VPS CONNECTED" : "  LOCAL PTY  •  READY");
             TerminalSession active = terminalSession;
-            if (!terminalWelcomeWritten && active != null && active.isRunning()) {
+            if (!sshConnected && !terminalWelcomeWritten && active != null && active.isRunning()) {
                 terminalWelcomeWritten = true;
                 active.write("export TERM=xterm-256color; PS1='$ '; printf '%s\\n' 'GKC APP • ANDROID PTY' 'ANSI / VT terminal ready' 'Type help for commands.'\\r");
             }
