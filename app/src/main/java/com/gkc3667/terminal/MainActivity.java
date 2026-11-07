@@ -1314,12 +1314,10 @@ public class MainActivity extends Activity {
                         v.evaluateJavascript(
                             "(function(){if(document.getElementById('gkc-discord-performance'))return;" +
                             "var s=document.createElement('style');s.id='gkc-discord-performance';" +
-                            "s.textContent='*,*::before,*::after{'+" +
-                            "'scroll-behavior:auto!important;animation-duration:0.001ms!important;" +
-                            "animation-iteration-count:1!important;transition-duration:0.001ms!important;" +
-                            "backdrop-filter:none!important;-webkit-backdrop-filter:none!important;" +
-                            "}'+" +
-                            '@media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}}';" +
+                            "s.textContent='*,*::before,*::after{scroll-behavior:auto!important;" +
+                            "animation-duration:0.001ms!important;animation-iteration-count:1!important;" +
+                            "transition-duration:0.001ms!important;backdrop-filter:none!important;" +
+                            "-webkit-backdrop-filter:none!important}';" +
                             "(document.head||document.documentElement).appendChild(s);" +
                             "})();", null);
                     }
