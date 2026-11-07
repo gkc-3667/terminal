@@ -1205,8 +1205,23 @@ public class MainActivity extends Activity {
         openPcApp("builtin_chrome", "Chrome", "https://www.google.com");
     }
 
+    private String getPcWebProfileName(String appId, String appUrl) {
+        // All Discord shortcuts share one isolated profile. This prevents an app shortcut
+        // and the built-in Discord entry from destroying each other's session and cache.
+        try {
+            String host = Uri.parse(appUrl == null ? "" : appUrl).getHost();
+            if (host != null) {
+                host = host.toLowerCase(java.util.Locale.ROOT);
+                if ("discord.com".equals(host) || host.endsWith(".discord.com")) {
+                    return "gkc_discord_pc";
+                }
+            }
+        } catch (Exception ignored) {}
+        return "gkc_" + (appId == null ? "unknown" : appId.replaceAll("[^A-Za-z0-9_-]", "_"));
+    }
+
     private void openPcApp(String appId, String appName, String appUrl) {
-        String profileName = "gkc_" + (appId == null ? "unknown" : appId.replaceAll("[^A-Za-z0-9_-]", "_"));
+        String profileName = getPcWebProfileName(appId, appUrl);
 
         LinearLayout page = new LinearLayout(this);
         page.setOrientation(LinearLayout.VERTICAL);
@@ -1244,6 +1259,9 @@ public class MainActivity extends Activity {
             pcWebProfile = "";
             web = null;
         }
+        // Reuse the same Discord page instead of navigating back to /app every time
+        // the user returns from the GKC home screen.
+        boolean needsInitialLoad = web == null;
         if (web == null) {
             if (!WebViewFeature.isFeatureSupported(WebViewFeature.MULTI_PROFILE)) {
                 new AlertDialog.Builder(this).setTitle("Cần cập nhật Android System WebView")
@@ -1270,11 +1288,9 @@ public class MainActivity extends Activity {
             web.setOverScrollMode(View.OVER_SCROLL_NEVER);
             web.setVerticalScrollBarEnabled(false);
             web.setHorizontalScrollBarEnabled(false);
-            // Use WebView's normal hardware-accelerated composition. Forcing a separate
-            // hardware layer can make a large, constantly changing Discord page jank.
-            if (Build.VERSION.SDK_INT >= 26) {
-                web.setRendererPriorityPolicy(WebView.RENDERER_PRIORITY_BOUND, true);
-            }
+            // Keep WebView on the normal hardware-accelerated composition path.
+            // Leave the renderer at Android's default IMPORTANT priority: lowering it while
+            // this view is temporarily hidden can cause Discord's renderer to be reclaimed.
 
             WebSettings ws = web.getSettings();
             ws.setJavaScriptEnabled(true);
@@ -1311,6 +1327,10 @@ public class MainActivity extends Activity {
             }
             WebViewCompat.getProfile(web).getCookieManager().setAcceptCookie(true);
             web.setWebViewClient(new WebViewClient() {
+                @Override public void onPageStarted(WebView v, String url, android.graphics.Bitmap favicon) {
+                    pcWebCurrentUrl = url == null ? "" : url;
+                }
+
                 @Override public void onPageFinished(WebView v, String url) {
                     pcWebCurrentUrl = url == null ? "" : url;
                     if (url != null && browserTabIndex >= 0 && browserTabIndex < browserTabs.size()) {
@@ -1329,6 +1349,23 @@ public class MainActivity extends Activity {
                                                          android.net.http.SslError e) {
                     h.cancel();
                     showWebErrorPage(v, "Chứng chỉ bảo mật không hợp lệ. Kết nối đã bị chặn.");
+                }
+
+                @Override public boolean onRenderProcessGone(WebView view,
+                        android.webkit.RenderProcessGoneDetail detail) {
+                    // Android may reclaim Chromium's renderer under memory pressure. Remove
+                    // and destroy the dead WebView, then offer a clean one-tap recovery.
+                    if (view.getParent() instanceof ViewGroup) {
+                        ((ViewGroup) view.getParent()).removeView(view);
+                    }
+                    if (pcWebView == view) {
+                        pcWebView = null;
+                        pcWebProfile = "";
+                        pcWebCurrentUrl = "";
+                    }
+                    view.destroy();
+                    showWebRendererRecovery(page, appId, appName, appUrl);
+                    return true;
                 }
             });
             web.setWebChromeClient(new WebChromeClient());
@@ -1349,7 +1386,9 @@ public class MainActivity extends Activity {
 
         setContentView(page);
         String target = appUrl == null || appUrl.trim().isEmpty() ? "https://www.google.com" : appUrl.trim();
-        if (!target.equals(pcWebCurrentUrl) || active.getUrl() == null) active.loadUrl(target);
+        // Only navigate when a WebView is first created. A reused Discord WebView is a
+        // live single-page app; reloading /app here resets the selected server/channel.
+        if (needsInitialLoad || active.getUrl() == null) active.loadUrl(target);
     }
 
     private void loadBrowserProgress() {
@@ -1401,6 +1440,26 @@ public class MainActivity extends Activity {
         if (pcWebView != null && pcWebView.getParent() != null) {
             try { pcWebView.onResume(); pcWebView.resumeTimers(); } catch (Exception ignored) {}
         }
+    }
+
+    private void showWebRendererRecovery(LinearLayout page, String appId,
+                                         String appName, String appUrl) {
+        LinearLayout panel = new LinearLayout(this);
+        panel.setOrientation(LinearLayout.VERTICAL);
+        panel.setGravity(Gravity.CENTER);
+        panel.setPadding(dp(24), dp(18), dp(24), dp(18));
+        TextView message = new TextView(this);
+        message.setText("Trình kết xuất Chromium vừa được khởi động lại do thiếu bộ nhớ hoặc lỗi hệ thống.\n\nPhiên Discord chưa chắc đã mất; hãy mở lại để tải trang.");
+        message.setTextColor(Color.WHITE);
+        message.setTextSize(15);
+        message.setGravity(Gravity.CENTER);
+        panel.addView(message, new LinearLayout.LayoutParams(-1, -2));
+        Button retry = smallButton("↻  MỞ LẠI ỨNG DỤNG");
+        retry.setOnClickListener(v -> openPcApp(appId, appName, appUrl));
+        LinearLayout.LayoutParams retryLp = new LinearLayout.LayoutParams(-2, dp(44));
+        retryLp.topMargin = dp(16);
+        panel.addView(retry, retryLp);
+        page.addView(panel, new LinearLayout.LayoutParams(-1, 0, 1));
     }
 
     private void showWebErrorPage(WebView web, String detail) {
