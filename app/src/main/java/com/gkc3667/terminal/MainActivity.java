@@ -1270,9 +1270,9 @@ public class MainActivity extends Activity {
             web.setOverScrollMode(View.OVER_SCROLL_NEVER);
             web.setVerticalScrollBarEnabled(false);
             web.setHorizontalScrollBarEnabled(false);
-            web.setLayerType(View.LAYER_TYPE_HARDWARE, null);
+            // Use WebView's normal hardware-accelerated composition. Forcing a separate
+            // hardware layer can make a large, constantly changing Discord page jank.
             if (Build.VERSION.SDK_INT >= 26) {
-                // Keep the active Discord renderer at foreground priority.
                 web.setRendererPriorityPolicy(WebView.RENDERER_PRIORITY_BOUND, true);
             }
 
@@ -1307,20 +1307,9 @@ public class MainActivity extends Activity {
                         browserTabs.set(browserTabIndex, url);
                     }
                     saveBrowserProgress();
-                    // Discord's desktop client uses many animated layers and blurred panels.
-                    // Reduce expensive visual effects on older/low-memory Android devices
-                    // without disabling JavaScript, voice, images, or core interactions.
-                    if ("builtin_discord".equals(appId) && v != null) {
-                        v.evaluateJavascript(
-                            "(function(){if(document.getElementById('gkc-discord-performance'))return;" +
-                            "var s=document.createElement('style');s.id='gkc-discord-performance';" +
-                            "s.textContent='*,*::before,*::after{scroll-behavior:auto!important;" +
-                            "animation-duration:0.001ms!important;animation-iteration-count:1!important;" +
-                            "transition-duration:0.001ms!important;backdrop-filter:none!important;" +
-                            "-webkit-backdrop-filter:none!important}';" +
-                            "(document.head||document.documentElement).appendChild(s);" +
-                            "})();", null);
-                    }
+                    // Do not inject a universal CSS selector into Discord. Its DOM is large
+                    // and constantly changing; forcing styles on every node can itself delay
+                    // pointer hover, clicks, and server navigation on low-end devices.
                 }
                 @Override public void onReceivedError(WebView v, android.webkit.WebResourceRequest req,
                                                       android.webkit.WebResourceError err) {
