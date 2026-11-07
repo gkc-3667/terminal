@@ -24,8 +24,18 @@ import android.view.Gravity;
 import android.view.KeyEvent;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.FrameLayout;
+import android.text.Editable;
+import android.text.TextWatcher;
+import android.view.MotionEvent;
+import android.view.inputmethod.BaseInputConnection;
 import android.view.inputmethod.EditorInfo;
 import android.view.inputmethod.InputMethodManager;
+import com.termux.terminal.TerminalEmulator;
+import com.termux.terminal.TerminalSession;
+import com.termux.terminal.TerminalSessionClient;
+import com.termux.view.TerminalView;
+import com.termux.view.TerminalViewClient;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.HorizontalScrollView;
@@ -66,6 +76,12 @@ public class MainActivity extends Activity {
     private EditText input;
     private ScrollView scroll;
     private Process shell;
+    private TerminalView terminalView;
+    private TerminalSession terminalSession;
+    private final TerminalCallbacks terminalCallbacks = new TerminalCallbacks();
+    private boolean interactiveInputMode = false;
+    private boolean suppressInputWatcher = false;
+    private boolean terminalWelcomeWritten = false;
     private Session sshSession;
     private ChannelShell sshChannel;
     private BufferedWriter sshIn;
@@ -76,7 +92,7 @@ public class MainActivity extends Activity {
     private boolean sshConnected = false;
     // Coalesce terminal output so high-volume SSH streams do not trigger a layout per packet.
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
-    private final StringBuilder terminalPendingOutput = new StringBuilder();
+    private final java.io.ByteArrayOutputStream terminalPendingBytes = new java.io.ByteArrayOutputStream();
     private boolean terminalFlushScheduled = false;
     private BufferedWriter shellIn;
     private BufferedReader shellOut;
@@ -107,12 +123,6 @@ public class MainActivity extends Activity {
         loadBrowserProgress();
         buildUi();
         startShell();
-        writeLine("GKC APP  •  ANDROID SHELL", GREEN, true);
-        writeLine("Phiên shell thật đang chạy trong môi trường Android.", MUTED, false);
-        writeLine("Android ABI: " + android.text.TextUtils.join(", ", Build.SUPPORTED_ABIS), BLUE, false);
-        writeLine("Android API: " + Build.VERSION.SDK_INT, MUTED, false);
-        writeLine("Gõ help để xem lệnh. Thư mục mặc định: " + currentPath, MUTED, false);
-        showPrompt();
         showHomeDashboard();
     }
 
@@ -266,8 +276,21 @@ public class MainActivity extends Activity {
         info.addView(statusLabel);
         content.addView(info);
 
+        FrameLayout terminalFrame = new FrameLayout(this);
+        terminalFrame.setBackground(round(discordTheme ? Color.rgb(30, 31, 34) : Color.rgb(6, 9, 13), 12));
+        terminalView = new TerminalView(this);
+        terminalView.setBackgroundColor(discordTheme ? Color.rgb(30, 31, 34) : Color.rgb(6, 9, 13));
+        terminalView.setTerminalViewClient(terminalCallbacks);
+        terminalView.setTextSize(terminalFontSize);
+        terminalView.setTypeface(resolveTerminalTypeface());
+        terminalView.setFocusable(false);
+        terminalView.setFocusableInTouchMode(false);
+        terminalFrame.addView(terminalView, new FrameLayout.LayoutParams(-1, -1));
+
+        // Keep the old transcript view as a fallback for diagnostic messages.
         scroll = new ScrollView(this);
         scroll.setFillViewport(true);
+        scroll.setVisibility(View.GONE);
         scroll.setBackground(round(discordTheme ? Color.rgb(30, 31, 34) : Color.rgb(6, 9, 13), 12));
         output = new TextView(this);
         output.setTextColor(FG);
@@ -278,8 +301,9 @@ public class MainActivity extends Activity {
         output.setPadding(dp(12), dp(12), dp(12), dp(16));
         output.setLineSpacing(dp(2), 1.0f);
         scroll.addView(output, new ScrollView.LayoutParams(-1, -2));
+        terminalFrame.addView(scroll, new FrameLayout.LayoutParams(-1, -1));
         LinearLayout.LayoutParams terminalLp = new LinearLayout.LayoutParams(-1, 0, 1);
-        content.addView(scroll, terminalLp);
+        content.addView(terminalFrame, terminalLp);
 
         pathLabel = new TextView(this);
         pathLabel.setTextColor(BLUE);
@@ -308,11 +332,25 @@ public class MainActivity extends Activity {
         String[][] specialKeys = {{"CTRL-C", new String(new char[]{3})}, {"CTRL-D", new String(new char[]{4})}, {"TAB", "\t"}, {"ESC", esc}, {"↑", esc + "[A"}, {"↓", esc + "[B"}, {"←", esc + "[D"}, {"→", esc + "[C"}};
         for (String[] k : specialKeys) {
             Button keyButton = smallButton(k[0]);
-            keyButton.setOnClickListener(v -> sendSshControl(k[1]));
+            keyButton.setOnClickListener(v -> sendTerminalInput(k[1]));
             LinearLayout.LayoutParams kp = new LinearLayout.LayoutParams(-2, dp(34));
             kp.rightMargin = dp(4);
             sshKeys.addView(keyButton, kp);
         }
+        Button rawMode = smallButton("INPUT: COMMAND");
+        rawMode.setTextColor(BLUE);
+        rawMode.setOnClickListener(v -> {
+            interactiveInputMode = !interactiveInputMode;
+            rawMode.setText(interactiveInputMode ? "INPUT: RAW" : "INPUT: COMMAND");
+            rawMode.setTextColor(interactiveInputMode ? GREEN : BLUE);
+            input.setHint(interactiveInputMode ? "RAW: ký tự được gửi trực tiếp vào terminal..." :
+                (sshConnected ? "Nhập lệnh VPS rồi nhấn RUN/Enter..." : "Nhập lệnh..."));
+            input.requestFocus();
+            statusLabel.setText(interactiveInputMode ? "  RAW KEYBOARD INPUT ENABLED" : "  COMMAND INPUT ENABLED");
+        });
+        LinearLayout.LayoutParams rawLp = new LinearLayout.LayoutParams(-2, dp(34));
+        rawLp.rightMargin = dp(4);
+        sshKeys.addView(rawMode, rawLp);
         HorizontalScrollView sshKeyScroll = new HorizontalScrollView(this);
         sshKeyScroll.setHorizontalScrollBarEnabled(false);
         sshKeyScroll.addView(sshKeys);
@@ -337,19 +375,42 @@ public class MainActivity extends Activity {
         input.setOnEditorActionListener((v, action, event) -> {
             if (action == EditorInfo.IME_ACTION_SEND ||
                 (event != null && event.getKeyCode() == KeyEvent.KEYCODE_ENTER)) {
-                runCommand();
+                if (interactiveInputMode) sendTerminalInput("\r");
+                else runCommand();
                 return true;
             }
             return false;
         });
         input.setOnKeyListener((v, keyCode, event) -> {
-            if (event.getAction() == KeyEvent.ACTION_DOWN && keyCode == KeyEvent.KEYCODE_DPAD_UP) {
-                browseHistory(-1); return true;
-            }
-            if (event.getAction() == KeyEvent.ACTION_DOWN && keyCode == KeyEvent.KEYCODE_DPAD_DOWN) {
-                browseHistory(1); return true;
+            if (event.getAction() != KeyEvent.ACTION_DOWN) return false;
+            if (interactiveInputMode) {
+                if (event.isCtrlPressed() && keyCode == KeyEvent.KEYCODE_C) { sendTerminalInput("\u0003"); return true; }
+                if (keyCode == KeyEvent.KEYCODE_DPAD_UP) { sendTerminalInput("\u001b[A"); return true; }
+                if (keyCode == KeyEvent.KEYCODE_DPAD_DOWN) { sendTerminalInput("\u001b[B"); return true; }
+                if (keyCode == KeyEvent.KEYCODE_DPAD_RIGHT) { sendTerminalInput("\u001b[C"); return true; }
+                if (keyCode == KeyEvent.KEYCODE_DPAD_LEFT) { sendTerminalInput("\u001b[D"); return true; }
+                if (keyCode == KeyEvent.KEYCODE_DEL) { sendTerminalInput("\u007f"); return true; }
+                if (keyCode == KeyEvent.KEYCODE_TAB) { sendTerminalInput("\t"); return true; }
+                if (keyCode == KeyEvent.KEYCODE_ESCAPE) { sendTerminalInput("\u001b"); return true; }
+            } else {
+                if (keyCode == KeyEvent.KEYCODE_DPAD_UP) { browseHistory(-1); return true; }
+                if (keyCode == KeyEvent.KEYCODE_DPAD_DOWN) { browseHistory(1); return true; }
             }
             return false;
+        });
+        input.addTextChangedListener(new TextWatcher() {
+            @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+            @Override public void onTextChanged(CharSequence s, int start, int before, int count) {}
+            @Override public void afterTextChanged(Editable value) {
+                if (!interactiveInputMode || suppressInputWatcher || value.length() == 0) return;
+                if (BaseInputConnection.getComposingSpanStart(value) >= 0 ||
+                    BaseInputConnection.getComposingSpanEnd(value) >= 0) return;
+                String committed = value.toString();
+                suppressInputWatcher = true;
+                value.clear();
+                suppressInputWatcher = false;
+                sendTerminalInput(committed);
+            }
         });
         bar.addView(input, new LinearLayout.LayoutParams(0, dp(48), 1));
         Button run = new Button(this);
