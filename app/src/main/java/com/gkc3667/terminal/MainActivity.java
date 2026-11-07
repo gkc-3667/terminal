@@ -10,6 +10,8 @@ import com.jcraft.jsch.Session;
 import com.jcraft.jsch.ChannelShell;
 import android.os.Bundle;
 import android.os.Build;
+import android.os.Handler;
+import android.os.Looper;
 import android.graphics.Color;
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
@@ -72,6 +74,10 @@ public class MainActivity extends Activity {
     private java.io.OutputStream sshRawOut;
     private volatile boolean sshReaderRunning = false;
     private boolean sshConnected = false;
+    // Coalesce terminal output so high-volume SSH streams do not trigger a layout per packet.
+    private final Handler mainHandler = new Handler(Looper.getMainLooper());
+    private final StringBuilder terminalPendingOutput = new StringBuilder();
+    private boolean terminalFlushScheduled = false;
     private BufferedWriter shellIn;
     private BufferedReader shellOut;
     private final ArrayList<String> history = new ArrayList<>();
@@ -1416,8 +1422,8 @@ public class MainActivity extends Activity {
         statusLabel.setText("  RUNNING...");
         final String marker = "__TP_DONE_" + System.nanoTime() + "__";
         new Thread(() -> {
-            StringBuilder result = new StringBuilder();
             String newPath = currentPath;
+            String exitCode = "0";
             try {
                 shellIn.write(cmd + "\n");
                 shellIn.write("printf '\\n" + marker + ":%s:%s\\n' \"$?\" \"$PWD\"\n");
@@ -1426,17 +1432,18 @@ public class MainActivity extends Activity {
                 while ((line = shellOut.readLine()) != null) {
                     if (line.startsWith(marker + ":")) {
                         String[] parts = line.split(":", 3);
+                        if (parts.length >= 2) exitCode = parts[1];
                         if (parts.length >= 3) newPath = parts[2];
                         break;
                     }
-                    if (result.length() < 6000) result.append(line).append("\n");
+                    queueTerminalOutput(line + "\n");
                 }
-                final String text = result.toString();
                 final String path = newPath;
+                final String code = exitCode;
                 runOnUiThread(() -> {
-                    if (!text.isEmpty()) { output.append(text); trimOutput(); }
                     currentPath = path;
-                    statusLabel.setText("  SHELL READY  •  EXIT CODE TRACKED");
+                    saveBrowserProgress();
+                    statusLabel.setText("  SHELL READY  •  EXIT " + code);
                     busy = false;
                     showPrompt();
                 });
@@ -1468,9 +1475,7 @@ public class MainActivity extends Activity {
                         .toString();
                 runOnUiThread(() -> {
                     if (!result.isEmpty()) {
-                        output.append(result);
-                        if (!result.endsWith("\n")) output.append("\n");
-                        trimOutput();
+                        queueTerminalOutput(result + (result.endsWith("\n") ? "" : "\n"));
                     }
                     statusLabel.setText("  PYTHON READY");
                     busy = false;
@@ -1780,6 +1785,17 @@ public class MainActivity extends Activity {
         new Thread(() -> {
             try {
                 JSch jsch = new JSch();
+                // Persist SSH host fingerprints in app-private storage. Changed fingerprints
+                // are surfaced to the user instead of silently trusting a different server.
+                java.io.File knownHosts = new java.io.File(getFilesDir(), "ssh_known_hosts");
+                java.io.File knownHostsParent = knownHosts.getParentFile();
+                if (knownHostsParent != null && !knownHostsParent.exists() && !knownHostsParent.mkdirs()) {
+                    throw new java.io.IOException("Không tạo được thư mục lưu SSH host key.");
+                }
+                if (!knownHosts.exists() && !knownHosts.createNewFile()) {
+                    throw new java.io.IOException("Không tạo được tệp SSH known_hosts.");
+                }
+                jsch.setKnownHosts(knownHosts.getAbsolutePath());
                 if (!privateKey.trim().isEmpty() && mode != 1) {
                     byte[] keyBytes = privateKey.replace("\\n", "\n").getBytes("UTF-8");
                     if (passphrase.isEmpty()) jsch.addIdentity("terminal-key", keyBytes, null, null);
@@ -1793,6 +1809,8 @@ public class MainActivity extends Activity {
                 config.put("PreferredAuthentications", mode == 1 ? "password,keyboard-interactive" :
                     (mode == 2 ? "publickey" : "publickey,password,keyboard-interactive"));
                 session.setConfig(config);
+                session.setServerAliveInterval(15000);
+                session.setServerAliveCountMax(3);
                 session.setUserInfo(new UserInfo() {
                     @Override public String getPassword() { return password; }
                     @Override public boolean promptPassword(String message) { return !password.isEmpty(); }
@@ -1816,7 +1834,9 @@ public class MainActivity extends Activity {
                 });
                 session.connect(18000);
                 ChannelShell channel = (ChannelShell) session.openChannel("shell");
-                channel.setPtyType("xterm"); channel.setPty(true);
+                channel.setPtyType("xterm-256color");
+                channel.setPtySize(100, 32, 900, 576);
+                channel.setPty(true);
                 java.io.InputStream in = channel.getInputStream();
                 java.io.OutputStream out = channel.getOutputStream();
                 channel.connect(10000);
@@ -1830,20 +1850,14 @@ public class MainActivity extends Activity {
                     writeLine("Đã kết nối VPS. Terminal nhận dữ liệu trực tiếp từ máy chủ.", GREEN, true);
                     writeLine("Các phím CTRL-C / CTRL-D / TAB / ESC / mũi tên có thể gửi tới VPS.", MUTED, false);
                     input.setHint("Nhập lệnh VPS rồi nhấn RUN/Enter...");
+                    if (scroll != null) scroll.postDelayed(this::resizeSshPty, 250);
                 });
-                // Larger reads reduce UI dispatch pressure during high-volume terminal output.
+                // Read in large blocks and batch UI rendering on a 40 ms cadence.
                 byte[] buffer = new byte[8192];
                 while (sshReaderRunning && !channel.isClosed()) {
                     int n = in.read(buffer);
                     if (n < 0) break;
-                    final String chunk = new String(buffer, 0, n, "UTF-8");
-                    runOnUiThread(() -> {
-                        if (output != null && sshConnected) {
-                            output.append(chunk);
-                            trimOutput();
-                            scroll.post(() -> scroll.fullScroll(View.FOCUS_DOWN));
-                        }
-                    });
+                    queueTerminalOutput(new String(buffer, 0, n, "UTF-8"));
                 }
                 if (sshReaderRunning) runOnUiThread(() -> {
                     sshConnected = false; busy = false; statusLabel.setText("  SSH DISCONNECTED");
@@ -1858,6 +1872,54 @@ public class MainActivity extends Activity {
                 });
             }
         }, "terminal-ssh-connect").start();
+    }
+
+    // Coalesce local and remote output. TextView updates and auto-scroll happen once per batch.
+    private void queueTerminalOutput(String chunk) {
+        if (chunk == null || chunk.isEmpty()) return;
+        boolean schedule = false;
+        synchronized (terminalPendingOutput) {
+            terminalPendingOutput.append(chunk);
+            // Bound the pending queue if a remote process floods stdout faster than the UI can draw.
+            if (terminalPendingOutput.length() > 32000) {
+                terminalPendingOutput.delete(0, terminalPendingOutput.length() - 24000);
+            }
+            if (!terminalFlushScheduled) {
+                terminalFlushScheduled = true;
+                schedule = true;
+            }
+        }
+        if (schedule) mainHandler.postDelayed(this::flushTerminalOutput, 40);
+    }
+
+    private void flushTerminalOutput() {
+        final String chunk;
+        synchronized (terminalPendingOutput) {
+            if (terminalPendingOutput.length() == 0) {
+                terminalFlushScheduled = false;
+                return;
+            }
+            chunk = terminalPendingOutput.toString();
+            terminalPendingOutput.setLength(0);
+            terminalFlushScheduled = false;
+        }
+        if (output == null || scroll == null || isFinishing()) return;
+        boolean followOutput = !scroll.canScrollVertically(1);
+        output.append(chunk);
+        trimOutput();
+        if (followOutput) scroll.post(() -> scroll.fullScroll(View.FOCUS_DOWN));
+    }
+
+    private void resizeSshPty() {
+        final ChannelShell active = sshChannel;
+        if (!sshConnected || active == null || output == null || scroll == null) return;
+        float cellWidth = Math.max(1f, output.getPaint().measureText("M"));
+        int cellHeight = Math.max(dp(16), output.getLineHeight());
+        int columns = Math.max(40, Math.min(240, (int) (scroll.getWidth() / cellWidth)));
+        int rows = Math.max(12, Math.min(100, scroll.getHeight() / cellHeight));
+        try {
+            active.setPtySize(columns, rows, (int) (columns * cellWidth), rows * cellHeight);
+        } catch (Exception ignored) {}
     }
 
     // All SSH socket writes run on a dedicated worker; Android UI thread must never do network I/O.
@@ -1972,12 +2034,14 @@ public class MainActivity extends Activity {
     }
 
     private void trimOutput() {
-        // Keep the most recent terminal output so long sessions do not grow without bound.
-        int maxChars = 6000;
-        if (output.length() > maxChars) {
-            int remove = output.length() - maxChars;
-            int newline = output.getText().toString().indexOf('\n', remove);
-            output.getEditableText().delete(0, newline >= 0 ? newline + 1 : remove);
+        // Bound TextView memory without allocating a full copy of the existing transcript.
+        final int maxChars = 12000;
+        int length = output.length();
+        if (length > maxChars) {
+            int remove = length - maxChars;
+            CharSequence text = output.getText();
+            while (remove < length && text.charAt(remove) != '\n') remove++;
+            output.getEditableText().delete(0, Math.min(length, remove + 1));
         }
     }
 
