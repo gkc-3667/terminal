@@ -1288,9 +1288,19 @@ public class MainActivity extends Activity {
             ws.setBuiltInZoomControls(true);
             ws.setDisplayZoomControls(false);
             ws.setTextZoom(90);
+            ws.setDefaultTextEncodingName("UTF-8");
             web.setInitialScale(0);
-            // Request the desktop site while fitting its wide layout to the phone/tablet screen.
-            ws.setUserAgentString("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36");
+            web.setBackgroundColor(Color.rgb(30, 31, 34));
+            // Keep Discord in desktop mode, but use the actual WebView/Chromium version.
+            // A frozen Chrome/120 user agent can make a newer WebView appear outdated and
+            // can select older compatibility paths on sites that inspect the browser version.
+            String runtimeUserAgent = ws.getUserAgentString();
+            String desktopUserAgent = runtimeUserAgent
+                .replaceAll("\\s*\\(Linux; Android[^)]*\\)", " (X11; Linux x86_64)")
+                .replace(" Version/4.0", "")
+                .replace("; wv", "")
+                .replace(" Mobile", "");
+            ws.setUserAgentString(desktopUserAgent);
             ws.setMediaPlaybackRequiresUserGesture(true);
             ws.setLoadsImagesAutomatically(true);
             ws.setCacheMode(WebSettings.LOAD_DEFAULT);
