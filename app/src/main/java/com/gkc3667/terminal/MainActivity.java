@@ -1441,6 +1441,7 @@ public class MainActivity extends Activity {
                 final String path = newPath;
                 final String code = exitCode;
                 runOnUiThread(() -> {
+                    flushTerminalOutput();
                     currentPath = path;
                     saveBrowserProgress();
                     statusLabel.setText("  SHELL READY  •  EXIT " + code);
@@ -1477,6 +1478,7 @@ public class MainActivity extends Activity {
                     if (!result.isEmpty()) {
                         queueTerminalOutput(result + (result.endsWith("\n") ? "" : "\n"));
                     }
+                    flushTerminalOutput();
                     statusLabel.setText("  PYTHON READY");
                     busy = false;
                     showPrompt();
@@ -1860,6 +1862,7 @@ public class MainActivity extends Activity {
                     queueTerminalOutput(new String(buffer, 0, n, "UTF-8"));
                 }
                 if (sshReaderRunning) runOnUiThread(() -> {
+                    flushTerminalOutput();
                     sshConnected = false; busy = false; statusLabel.setText("  SSH DISCONNECTED");
                     writeLine("Kết nối VPS đã đóng.", Color.RED, false);
                 });
@@ -1971,6 +1974,7 @@ public class MainActivity extends Activity {
     }
 
     private void disconnectSsh() {
+        flushTerminalOutput();
         // Detach state immediately so no new command can target a closing channel.
         sshReaderRunning = false;
         sshConnected = false;
@@ -2041,7 +2045,7 @@ public class MainActivity extends Activity {
             int remove = length - maxChars;
             CharSequence text = output.getText();
             while (remove < length && text.charAt(remove) != '\n') remove++;
-            output.getEditableText().delete(0, Math.min(length, remove + 1));
+            output.setText(text.subSequence(Math.min(length, remove + 1), length), TextView.BufferType.SPANNABLE);
         }
     }
 
