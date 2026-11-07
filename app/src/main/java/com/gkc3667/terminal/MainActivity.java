@@ -1968,24 +1968,6 @@ public class MainActivity extends Activity {
         if (terminalView != null) terminalView.onScreenUpdated();
     }
 
-    private void flushTerminalOutput() {
-        final String chunk;
-        synchronized (terminalPendingOutput) {
-            if (terminalPendingOutput.length() == 0) {
-                terminalFlushScheduled = false;
-                return;
-            }
-            chunk = terminalPendingOutput.toString();
-            terminalPendingOutput.setLength(0);
-            terminalFlushScheduled = false;
-        }
-        if (output == null || scroll == null || isFinishing()) return;
-        boolean followOutput = !scroll.canScrollVertically(1);
-        output.append(chunk);
-        trimOutput();
-        if (followOutput) scroll.post(() -> scroll.fullScroll(View.FOCUS_DOWN));
-    }
-
 
     private void resizeSshPty() {
         final ChannelShell active = sshChannel;
@@ -2091,16 +2073,6 @@ public class MainActivity extends Activity {
         else emitLocalText(text);
     }
 
-    private void writeLine(String value, int color, boolean bold) {
-        android.text.SpannableString s = new android.text.SpannableString(value + "\n");
-        s.setSpan(new android.text.style.ForegroundColorSpan(color), 0, s.length(),
-                android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-        if (bold) s.setSpan(new android.text.style.StyleSpan(Typeface.BOLD), 0, s.length(),
-                android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-        output.append(s);
-        trimOutput();
-        scroll.post(() -> scroll.fullScroll(View.FOCUS_DOWN));
-    }
 
     private void pasteInput() {
         ClipboardManager clipboard = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
@@ -2256,7 +2228,8 @@ public class MainActivity extends Activity {
         @Override public void onEmulatorSet() {
             if (statusLabel != null) statusLabel.setText("  LOCAL PTY  •  READY");
             TerminalSession active = terminalSession;
-            if (active != null && active.isRunning()) {
+            if (!terminalWelcomeWritten && active != null && active.isRunning()) {
+                terminalWelcomeWritten = true;
                 active.write("export TERM=xterm-256color; PS1='$ '; printf '%s\\n' 'GKC APP • ANDROID PTY' 'ANSI / VT terminal ready' 'Type help for commands.'\\r");
             }
         }
