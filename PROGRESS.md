@@ -12,6 +12,11 @@
 - Lưu và khôi phục thư mục làm việc cùng lịch sử lệnh; kiểm tra thư mục còn tồn tại trước khi khôi phục.
 - Giảm đổ bóng/elevation trên thẻ giao diện để hạn chế vẽ lại trên thiết bị yếu.
 
+## Tối ưu Discord PC (2026-11-07)
+- Giữ giao diện desktop Discord và cập nhật chuỗi Chrome trong User-Agent theo phiên bản Chromium thực tế của Android System WebView, thay vì cố định Chrome/120.
+- Mục tiêu là tránh khai báo trình duyệt cũ hơn WebView thực tế; thay đổi này không thể tự loại bỏ độ trễ mạng hoặc giới hạn CPU/RAM.
+- Cần build APK và đo thực tế trên Chromebook cấu hình thấp trước khi kết luận mức cải thiện.
+
 ## Mục tiêu tối ưu tiếp theo
 1. Kiểm tra APK trên Chromebook cấu hình thấp, theo dõi độ trễ khi mở trang và chuyển tab.
 2. Nếu còn giật, giảm hiệu ứng giao diện và các tác vụ nền không cần thiết.
