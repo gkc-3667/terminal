@@ -21,7 +21,7 @@ android {
 dependencies {
     implementation("com.github.mwiede:jsch:0.2.20")
     implementation("androidx.webkit:webkit:1.9.0")
-    implementation("com.github.termux.termux-app:terminal-view:0.118.0")
+    implementation("com.termux.termux-app:terminal-view:0.118.0")
 }
 
 chaquopy {
