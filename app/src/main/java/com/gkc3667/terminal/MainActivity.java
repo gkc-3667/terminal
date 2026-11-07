@@ -59,6 +59,7 @@ import java.io.BufferedWriter;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.util.ArrayList;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.Properties;
 import android.content.SharedPreferences;
 import org.json.JSONArray;
@@ -92,6 +93,7 @@ public class MainActivity extends Activity {
     private boolean sshConnected = false;
     // Coalesce terminal output so high-volume SSH streams do not trigger a layout per packet.
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
+    private final AtomicBoolean terminalUiUpdatePending = new AtomicBoolean(false);
     private final java.io.ByteArrayOutputStream terminalPendingBytes = new java.io.ByteArrayOutputStream();
     private boolean terminalFlushScheduled = false;
     private BufferedWriter shellIn;
@@ -2178,7 +2180,14 @@ public class MainActivity extends Activity {
             if (terminalView != null) terminalView.onScreenUpdated();
         }
         @Override public void onTextChanged(TerminalSession session) {
-            runOnUiThread(() -> updateFromTerminal(session));
+            // Terminal output can arrive hundreds of times per second. Coalesce callbacks
+            // into one UI refresh per frame window instead of flooding the main queue.
+            if (terminalUiUpdatePending.compareAndSet(false, true)) {
+                mainHandler.postDelayed(() -> {
+                    terminalUiUpdatePending.set(false);
+                    if (!isFinishing()) updateFromTerminal(session);
+                }, 16);
+            }
         }
         @Override public void onTitleChanged(TerminalSession session) {
             runOnUiThread(() -> {
