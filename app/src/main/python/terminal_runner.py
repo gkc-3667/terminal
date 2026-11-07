@@ -3,6 +3,7 @@ import importlib.metadata
 import io
 import os
 import runpy
+import re
 import shlex
 import sys
 import traceback
@@ -58,35 +59,72 @@ def _run_python(args):
 
 def _run_pip(args):
     if not args or args[0] in ("--version", "-V"):
-        print("pip is provided by the embedded Python runtime (build-time package environment).")
+        print("pip is bundled with the embedded Python runtime.")
         return
-    if args[0] == "list":
-        rows = sorted((d.metadata.get("Name", "unknown"), d.version)
-                      for d in importlib.metadata.distributions())
+
+    action = args[0].lower()
+    if action in ("help", "--help", "-h"):
+        print("GKC embedded pip commands:")
+        print("  pip list                 show packages bundled in this APK")
+        print("  pip freeze               show pinned package versions")
+        print("  pip show PACKAGE         show package metadata")
+        print("  pip install PACKAGE      verify whether a package is bundled")
+        print("")
+        print("New packages must be added to app/build.gradle.kts and included in a new APK.")
+        return
+
+    distributions = list(importlib.metadata.distributions())
+
+    if action == "list":
+        rows = sorted(
+            (d.metadata.get("Name", "unknown"), d.version)
+            for d in distributions
+        )
         print("Package                  Version")
         for name, version in rows:
             print(f"{name:24} {version}")
         return
-    if args[0] == "show" and len(args) > 1:
+
+    if action == "freeze":
+        for d in sorted(distributions, key=lambda item: item.metadata.get("Name", "").lower()):
+            print(f"{d.metadata.get('Name', 'unknown')}=={d.version}")
+        return
+
+    if action == "show" and len(args) > 1:
         try:
             d = importlib.metadata.distribution(args[1])
             print(f"Name: {d.metadata.get('Name')}")
             print(f"Version: {d.version}")
             print(f"Location: {d.locate_file('')}")
+            if d.metadata.get("Summary"):
+                print(f"Summary: {d.metadata.get('Summary')}")
         except importlib.metadata.PackageNotFoundError:
             print("WARNING: Package(s) not found:", args[1])
         return
-    if args[0] == "install" and len(args) > 1:
-        target = args[-1].lower().replace("_", "-")
-        if target in ("discord.py", "discordpy"):
-            try:
-                d = importlib.metadata.distribution("discord.py")
-                print(f"Requirement already satisfied: discord.py=={d.version}")
-            except importlib.metadata.PackageNotFoundError:
-                print("discord.py chưa được tích hợp trong bản ứng dụng này.")
+
+    if action == "install":
+        specs = [item for item in args[1:] if not item.startswith("-")]
+        if not specs:
+            print("pip install: thiếu tên package.")
             return
-        print("Cài gói mới trực tiếp bằng pip chưa được hỗ trợ trong Android app.")
-        print("Các gói có mã native phải được biên dịch cho Android và đóng gói vào APK.")
-        print("Dùng 'pip list' để xem các gói đã có.")
+        for spec in specs:
+            package_name = re.split(r"[<=>!~\[]", spec, maxsplit=1)[0].strip()
+            if not package_name:
+                print("Yêu cầu package không hợp lệ:", spec)
+                continue
+            try:
+                d = importlib.metadata.distribution(package_name)
+                requested = re.search(r"==\s*([A-Za-z0-9_.+-]+)", spec)
+                if requested and requested.group(1) != d.version:
+                    print(f"ERROR: {package_name}=={requested.group(1)} không có trong APK.")
+                    print(f"       Bản đã tích hợp: {d.version}")
+                else:
+                    print(f"Requirement already satisfied: {d.metadata.get('Name', package_name)}=={d.version}")
+            except importlib.metadata.PackageNotFoundError:
+                print(f"ERROR: Không tìm thấy {package_name} trong gói Python của ứng dụng.")
+                print("Chaquopy đóng gói package tương thích Android lúc build APK;")
+                print(f'  thêm install("{spec}") vào khối pip trong app/build.gradle.kts, rồi build lại.')
+                print("Khi đã kết nối SSH, lệnh pip install sẽ chạy trực tiếp trên VPS.")
         return
-    print("Lệnh pip hỗ trợ: pip list | pip show TEN_GOI | pip install discord.py")
+
+    print("Lệnh pip hỗ trợ: pip list | pip freeze | pip show PACKAGE | pip install PACKAGE | pip help")
